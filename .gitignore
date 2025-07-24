@@ -1,0 +1,9 @@
+*.exe
+.env
+tmp/
+*.tmp
+*.log
+*.txt
+*.bak
+*.swp
+*.DS_Store

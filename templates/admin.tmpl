@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/style.css">
+    <title>Admin Dashboard</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.png">
+</head>
+<body class="container">
+    <h1>Welcome to the Admin Dashboard</h1>
+    <h2>Actions</h2>
+    <ul>
+        <li><a href="/admin/users">View Registered Users</a></li>
+        <li><a href="javascript:void(0);" onclick="toggleScheduleVisibility();">Toggle Schedule Visibility {{ if .isSchedulePublic }}(Currently Public){{ else }}(Currently Private){{ end }}</a></li>
+    </ul>
+    <h2>Generate Matches</h2>
+    <form id="generateForm" onsubmit="event.preventDefault(); generate();">
+        <label for="numberOfMatches">Number of Matches (odd numbers are rounded down to the nearest even):</label>
+        <input type="number" id="numberOfMatches" name="numberOfMatches" min="1" required>
+        <button type="submit">Generate Matches</button>
+    </form>
+    <h2>Match Schedule</h2>
+    <ul>
+        {{ range .matches }}
+            <li>Match {{ .match }}: {{ .team1.username }} vs {{ .team2.username }}</li>
+        {{ end }}
+    </ul>
+    <script>
+
+        function generate() {
+            const numberOfMatches = document.getElementById('numberOfMatches').value/2;
+            fetch('/admin/generate?' + new URLSearchParams({ numberofmatches: numberOfMatches }))
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        setTimeout(() => {
+            window.location.reload();
+        }, 1000); // Reload after 1 second to reflect changes
+        }
+        
+        function toggleScheduleVisibility() {
+            fetch('/admin/toggle_schedule', {
+                method: 'POST',
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('Schedule visibility toggled. Now ' + (data.isSchedulePublic ? 'public' : 'private'));
+                window.location.reload();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+    </script>
+</body>
+</html>

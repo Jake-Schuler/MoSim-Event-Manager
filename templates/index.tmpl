@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/style.css">
+    <title>{{ .title }}</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.png">
+</head>
+<body class="container">
+    <h1>{{ .title }}</h1>
+    {{ if not .isSchedulePublic }}
+        <a href="/auth">Register</a>
+    {{ end }}
+    {{ if .matches }}
+        <h2>Match Schedule</h2>
+        <ul>
+            {{ range .matches }}
+                <li>Match {{ .match }}: {{ .team1.username }} vs {{ .team2.username }}</li>
+            {{ end }}
+        </ul>
+    {{ else }}
+        <p>No matches scheduled.</p>
+    {{ end }}
+</body>
+</html>
