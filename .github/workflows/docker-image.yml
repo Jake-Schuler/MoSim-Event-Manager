@@ -1,4 +1,3 @@
-#
 name: Docker Build & Publish
 
 on:
@@ -8,6 +7,7 @@ on:
       - seed
     tags:
       - v*
+  pull_request:
 
 jobs:
   push:
@@ -29,13 +29,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GH_TOKEN }}
 
-      - name: Extract lowercase image name and tag
+      - name: Normalize repo owner and name
         id: meta
         run: |
+          REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           IMAGE_NAME=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')
           VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
-          [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
+          [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo "$VERSION" | sed -e 's/^v//')
           [ "$VERSION" == "main" ] && VERSION=latest
+          echo "repo_owner=$REPO_OWNER" >> $GITHUB_OUTPUT
           echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -46,4 +48,4 @@ jobs:
           platforms: linux/amd64,linux/arm64/v8
           file: Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/${{ steps.meta.outputs.image_name }}:${{ steps.meta.outputs.version }}
+          tags: ghcr.io/${{ steps.meta.outputs.repo_owner }}/${{ steps.meta.outputs.image_name }}:${{ steps.meta.outputs.version }}
