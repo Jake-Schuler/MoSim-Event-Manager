@@ -1,0 +1,9 @@
+README.md
+.github/
+.git/
+.gitignore
+.vscode/
+example.env
+example.compose.yml
+tmp/
+docs/

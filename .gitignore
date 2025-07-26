@@ -7,3 +7,4 @@ tmp/
 *.bak
 *.swp
 *.DS_Store
+*.db

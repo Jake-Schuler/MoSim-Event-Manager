@@ -1,8 +1,10 @@
 package main
 
 import (
+	"embed"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"net/http"
 	"os"
 	"os/exec"
@@ -17,10 +19,15 @@ import (
 	"gorm.io/gorm"
 )
 
+//go:embed static/*
+var static embed.FS
+
+//go:embed templates/*
+var templates embed.FS
+
 type User struct {
 	ID       int    `gorm:"primaryKey"`
 	Username string `gorm:"uniqueIndex"`
-	Email    string `gorm:"uniqueIndex"`
 	Avatar   string `gorm:"size:255"`
 	MMID     int    `gorm:"uniqueIndex"` // MatchMaker ID
 }
@@ -29,14 +36,14 @@ var CurrentMMID = 1 // Global variable to track the current MMID
 
 func main() {
 	// Load environment variables from .env file
-	if err := godotenv.Load(); err != nil {
+	if err := godotenv.Load("data/.env"); err != nil {
 		fmt.Println("Error loading .env file")
 	}
 
 	// Initialize the Gin router
 	r := gin.Default()
-	r.LoadHTMLGlob("templates/*")
-	r.StaticFS("/static", http.Dir("static"))
+	r.SetHTMLTemplate(template.Must(template.New("").ParseFS(templates, "templates/*")))
+	r.StaticFS("/static", http.FS(static))
 	authorized := r.Group("/admin", gin.BasicAuth(gin.Accounts{
 		"user": os.Getenv("ADMIN_PASSWORD"),
 	}))
@@ -44,7 +51,7 @@ func main() {
 	isSchedulePublic := false
 
 	// Connect to the SQLite database
-	db, err := gorm.Open(sqlite.Open("users.db"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("data/users.db"), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect to database")
 	}
@@ -69,13 +76,13 @@ func main() {
 	r.GET("/register", func(c *gin.Context) {
 		access_token := c.Query("access_token")
 		if access_token == "" {
-			c.HTML(400, "authRedirect.tmpl", gin.H{"error": "access_token is required"})
+			c.HTML(400, "authRedirect.tmpl", gin.H{"error": "access_token is required", "ClientID": os.Getenv("DISCORD_CLIENT_ID")})
 			return
 		}
 
 		req, err := http.NewRequest("GET", "https://discord.com/api/users/@me", nil)
 		if err != nil {
-			c.HTML(500, "authRedirect.tmpl", gin.H{"error": "Failed to create request"})
+			c.HTML(500, "authRedirect.tmpl", gin.H{"error": "Failed to create request", "ClientID": os.Getenv("DISCORD_CLIENT_ID")})
 			return
 		}
 		req.Header.Set("Authorization", "Bearer "+access_token)
@@ -83,30 +90,30 @@ func main() {
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		if err != nil {
-			c.HTML(500, "authRedirect.tmpl", gin.H{"error": "Failed to contact Discord"})
+			c.HTML(500, "authRedirect.tmpl", gin.H{"error": "Failed to contact Discord", "ClientID": os.Getenv("DISCORD_CLIENT_ID")})
 			return
 		}
 		defer resp.Body.Close()
 
 		if resp.StatusCode != 200 {
-			c.HTML(400, "authRedirect.tmpl", gin.H{"error": "Invalid access token"})
+			c.HTML(400, "authRedirect.tmpl", gin.H{"error": "Invalid access token", "ClientID": os.Getenv("DISCORD_CLIENT_ID")})
 			return
 		}
 
 		var userInfo map[string]interface{}
 		if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
-			c.HTML(500, "authRedirect.tmpl", gin.H{"error": "Failed to parse Discord response"})
+			c.HTML(500, "authRedirect.tmpl", gin.H{"error": "Failed to parse Discord response", "ClientID": os.Getenv("DISCORD_CLIENT_ID")})
 			return
 		}
 
 		idStr, ok := userInfo["id"].(string)
 		if !ok {
-			c.HTML(500, "authRedirect.tmpl", gin.H{"error": "Discord response missing id"})
+			c.HTML(500, "authRedirect.tmpl", gin.H{"error": "Discord response missing id", "ClientID": os.Getenv("DISCORD_CLIENT_ID")})
 			return
 		}
 		idInt, err := strconv.Atoi(idStr)
 		if err != nil {
-			c.HTML(500, "authRedirect.tmpl", gin.H{"error": "Invalid Discord user id"})
+			c.HTML(500, "authRedirect.tmpl", gin.H{"error": "Invalid Discord user id", "ClientID": os.Getenv("DISCORD_CLIENT_ID")})
 			return
 		}
 		if db.First(&User{ID: idInt}).RowsAffected > 0 {
@@ -117,13 +124,11 @@ func main() {
 		}
 
 		username, _ := userInfo["username"].(string)
-		email, _ := userInfo["email"].(string)
 		avatar, _ := userInfo["avatar"].(string)
 
 		db.Create(&User{
 			ID:       idInt,
 			Username: username,
-			Email:    email,
 			Avatar:   avatar,
 			MMID:     CurrentMMID,
 		})
@@ -221,7 +226,7 @@ func GetMMID(db *gorm.DB) {
 }
 
 func ParseMatchSchedule() []map[string]interface{} {
-	db, err := gorm.Open(sqlite.Open("users.db"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("data/users.db"), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect to database")
 	}
