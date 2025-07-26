@@ -66,7 +66,7 @@ func main() {
 		}
 	})
 
-	r.GET("/auth", func(c *gin.Context) {
+	r.GET("/register", func(c *gin.Context) {
 		access_token := c.Query("access_token")
 		if access_token == "" {
 			c.HTML(400, "authRedirect.tmpl", gin.H{"error": "access_token is required"})

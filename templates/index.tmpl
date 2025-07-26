@@ -10,7 +10,7 @@
 <body class="container">
     <h1>{{ .title }}</h1>
     {{ if not .isSchedulePublic }}
-        <a href="/auth">Register</a>
+        <a href="/register">Register</a>
     {{ end }}
     {{ if .matches }}
         <h2>Match Schedule</h2>

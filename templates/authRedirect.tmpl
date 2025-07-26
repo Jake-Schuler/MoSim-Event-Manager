@@ -15,10 +15,10 @@
             const accessToken = params.get('access_token');
 
             if (accessToken) {
-                // Redirect to the /auth endpoint with the access token
-                window.location.href = `/auth?access_token=${accessToken}`;
+                // Redirect to the /register endpoint with the access token
+                window.location.href = `/register?access_token=${accessToken}`;
             } else {
-                window.location.href = 'https://discord.com/oauth2/authorize?client_id=1397996543142793311&response_type=token&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fauth&scope=identify+email';
+                window.location.href = 'https://discord.com/oauth2/registerorize?client_id=1397996543142793311&response_type=token&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fauth&scope=identify+email';
             }
         };
     </script>
