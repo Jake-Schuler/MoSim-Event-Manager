@@ -18,7 +18,7 @@
                 // Redirect to the /register endpoint with the access token
                 window.location.href = `/register?access_token=${accessToken}`;
             } else {
-                window.location.href = 'https://discord.com/oauth2/authorize?client_id={{.ClientID}}&response_type=token&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fregister&scope=identify';
+                window.location.href = 'https://discord.com/oauth2/authorize?client_id={{.ClientID}}&response_type=token&redirect_uri={{.RedirectURI}}&scope=identify';
             }
         };
     </script>
