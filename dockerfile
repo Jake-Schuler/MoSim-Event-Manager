@@ -1,4 +1,4 @@
-FROM golang:1.24-alpine3.22
+FROM golang:1.24.5-bullseyes
 
 WORKDIR /usr/src/app
 
