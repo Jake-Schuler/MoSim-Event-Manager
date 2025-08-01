@@ -13,9 +13,15 @@ func LeaderboardHandler(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(500, gin.H{"error": "Failed to fetch leaderboard"})
 			return
 		}
-		c.HTML(200, "leaderboard.tmpl", gin.H{
-			"title":       "Leaderboard",
-			"users":      leaderboard,
-		})
+		if GetSchedulePublic() {
+			c.HTML(200, "leaderboard.tmpl", gin.H{
+				"title": "Leaderboard",
+				"users": leaderboard,
+			})
+		} else {
+			c.HTML(403, "403.tmpl", gin.H{
+				"title": "Forbidden",
+			})
+		}
 	}
 }

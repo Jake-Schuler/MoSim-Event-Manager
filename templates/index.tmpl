@@ -11,12 +11,14 @@
     <h1>{{ .title }}</h1>
     {{ if not .isSchedulePublic }}
         <a href="/register">Register</a>
+    {{ else }}
+        <a href="/leaderboard">Leaderboard</a>
     {{ end }}
     {{ if .matches }}
         <h2>Match Schedule</h2>
         <ul>
             {{ range .matches }}
-                <li>Match {{ .match }}: {{ .team1.username }} vs {{ .team2.username }}</li>
+                <li>Match {{ .match }}: {{ if .team1.prefered_username }}{{ .team1.prefered_username }}{{ else }}{{ .team1.username }}{{ end }} vs {{ if .team2.prefered_username }}{{ .team2.prefered_username }}{{ else }}{{ .team2.username }}{{ end }}</li>
             {{ end }}
         </ul>
     {{ else }}
