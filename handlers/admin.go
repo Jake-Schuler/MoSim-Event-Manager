@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"net/http"
 	"os"
 	"os/exec"
 	"runtime"
@@ -45,6 +46,49 @@ func AdminUsersHandler(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 		c.JSON(200, users)
+	}
+}
+
+func SetActiveMatchHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Get match level and ID from query parameters
+		matchLevel := c.DefaultQuery("level", "Quals")
+		matchIDStr := c.Query("id")
+		if matchIDStr == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Missing match ID"})
+			return
+		}
+
+		matchID, err := strconv.Atoi(matchIDStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid match ID"})
+			return
+		}
+
+		var match models.QualsMatch
+		err = db.Where("id = ?", matchID).First(&match).Error
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Match not found"})
+			return
+		}
+
+		// Broadcast the active match update to all WebSocket clients
+		services.BroadcastActiveMatch(
+			matchLevel,
+			matchID,
+			strconv.Itoa(match.RedPlayerID),
+			strconv.Itoa(match.BluePlayerID),
+			db,
+		)
+
+		// Return success response
+		c.JSON(http.StatusOK, gin.H{
+			"message":      "Active match set and broadcasted",
+			"level":        matchLevel,
+			"matchID":      matchID,
+			"RedAlliance":  match.RedPlayerID,
+			"BlueAlliance": match.BluePlayerID,
+		})
 	}
 }
 

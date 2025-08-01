@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test</title>
+</head>
+<body>
+    <h1>WebSocket Test</h1>
+    <div id="output"></div>
+    <input type="text" id="messageInput" placeholder="Enter message">
+    <button onclick="sendMessage()">Send</button>
+    <button onclick="connect()">Connect</button>
+    <button onclick="disconnect()">Disconnect</button>
+
+    <script>
+        let ws = null;
+        const output = document.getElementById('output');
+
+        function log(message) {
+            output.innerHTML += '<div>' + new Date().toISOString() + ': ' + message + '</div>';
+        }
+
+        function connect() {
+            if (ws) {
+                log('Already connected');
+                return;
+            }
+
+            try {
+                ws = new WebSocket('ws://localhost:8080/ws');
+                
+                ws.onopen = function(event) {
+                    log('Connected to WebSocket');
+                };
+
+                ws.onmessage = function(event) {
+                    log('Received: ' + event.data);
+                };
+
+                ws.onclose = function(event) {
+                    log('WebSocket closed. Code: ' + event.code + ', Reason: ' + event.reason);
+                    ws = null;
+                };
+
+                ws.onerror = function(error) {
+                    log('WebSocket error: ' + error);
+                };
+            } catch (error) {
+                log('Error creating WebSocket: ' + error);
+            }
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                ws = null;
+                log('Disconnected');
+            }
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(input.value);
+                log('Sent: ' + input.value);
+                input.value = '';
+            } else {
+                log('WebSocket not connected');
+            }
+        }
+    </script>
+</body>
+</html>
