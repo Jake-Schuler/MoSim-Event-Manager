@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/static/style.css">
+    <title>{{ .title }}</title>
+    <link rel="icon" type="image/x-icon" href="/static/static/favicon.png">
+</head>
+<body class="container">
+    <h1>{{ .title }}</h1>
+    <form method="POST" action="/admin/match/{{ .match.ID }}/edit">
+        <div>
+            <label for="redAlliance">Red Alliance:</label>
+            <select id="redAlliance" name="redAlliance" required>
+                {{ range .users }}
+                    <option value="{{ .MMID }}" {{ if eq .MMID $.match.RedPlayerID }}selected{{ end }}>
+                        {{ if .PreferedUsername }}{{ .PreferedUsername }}{{ else }}{{ .Username }}{{ end }} ({{ .MMID }})
+                    </option>
+                {{ end }}
+            </select>
+        </div>
+        <div>
+            <label for="blueAlliance">Blue Alliance:</label>
+            <select id="blueAlliance" name="blueAlliance" required>
+                {{ range .users }}
+                    <option value="{{ .MMID }}" {{ if eq .MMID $.match.BluePlayerID }}selected{{ end }}>
+                        {{ if .PreferedUsername }}{{ .PreferedUsername }}{{ else }}{{ .Username }}{{ end }} ({{ .MMID }})
+                    </option>
+                {{ end }}
+            </select>
+        </div>
+        <div>
+            <label for="redAutoScore">Red Auto Score:</label>
+            <input type="number" id="redAutoScore" name="redAutoScore" value="{{ .match.RedAutoScore }}" required
+                   min="0">
+        </div>
+        <div>
+            <label for="blueAutoScore">Blue Auto Score:</label>
+            <input type="number" id="blueAutoScore" name="blueAutoScore" value="{{ .match.BlueAutoScore }}" required
+                   min="0">
+        </div>
+        <div>
+            <label for="redTeleopScore">Red Teleop Score:</label>
+            <input type="number" id="redTeleopScore" name="redTeleopScore" value="{{ .match.RedTeleopScore }}" required
+                   min="0">
+        </div>
+        <div>
+            <label for="blueTeleopScore">Blue Teleop Score:</label>
+            <input type="number" id="blueTeleopScore" name="blueTeleopScore" value="{{ .match.BlueTeleopScore }}" required
+                   min="0">
+        </div>
+        <div>
+            <label for="redEndgameScore">Red Endgame Score:</label>
+            <input type="number" id="redEndgameScore" name="redEndgameScore" value="{{ .match.RedEndgameScore }}" required
+                   min="0">
+        </div>
+        <div>
+            <label for="blueEndgameScore">Blue Endgame Score:</label>
+            <input type="number" id="blueEndgameScore" name="blueEndgameScore" value="{{ .match.BlueEndgameScore }}" required
+                   min="0">
+        </div>
+        <div>
+            <label for="redBonusRP">Red Bonus RP:</label>
+            <input type="number" id="redBonusRP" name="redBonusRP" value="{{ .match.RedBonusRP }}" required>
+        </div>
+        <div>
+            <label for="blueBonusRP">Blue Bonus RP:</label>
+            <input type="number" id="blueBonusRP" name="blueBonusRP" value="{{ .match.BlueBonusRP }}" required>
+        </div>
+        <button type="submit">Save Changes</button>
+    </form>
+</body>
+</html>

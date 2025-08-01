@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/static/style.css">
+    <title>{{ .title }}</title>
+    <link rel="icon" type="image/x-icon" href="/static/static/favicon.png">
+</head>
+<body class="container">
+    <table>
+        <tr>
+            <th>Rank</th>
+            <th>Username</th>
+            <th>Ranking Points</th>
+            <th>Total Points</th>
+            <th>Auto Points</th>
+            <th>Teleop Points</th>
+            <th>Endgame Points</th>
+        </tr>
+        {{range .users}}
+        <tr>
+            <td>{{.Rank}}</td>
+            <td>{{ if .PreferedUsername }}{{ .PreferedUsername }}{{ else }}{{ .Username }}{{ end }}</td>
+            <td>{{.TotalRP}}</td>
+            <td>{{.TotalPoints}}</td>
+            <td>{{.AutoPoints}}</td>
+            <td>{{.TeleopPoints}}</td>
+            <td>{{.EndgamePoints}}</td>
+        </tr>
+        {{end}}
+    </table>
+</body>
+</html>
