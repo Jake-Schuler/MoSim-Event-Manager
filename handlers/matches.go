@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/Jake-Schuler/ORC-MatchMaker/models"
+	"github.com/Jake-Schuler/ORC-MatchMaker/services"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -124,24 +125,41 @@ func EditMatchesHandler(db *gorm.DB) gin.HandlerFunc {
 			}
 			// Update the match
 			if err := db.Model(&match).Updates(models.QualsMatch{
-				RedPlayerID:  redID,
-				BluePlayerID: blueID,
-				RedTeleopScore: redTeleopScoreInt,
-				BlueTeleopScore: blueTeleopScoreInt,
-				RedAutoScore:  redAutoScoreInt,
-				BlueAutoScore: blueAutoScoreInt,
-				RedEndgameScore: redEndgameScoreInt,
+				RedPlayerID:      redID,
+				BluePlayerID:     blueID,
+				RedTeleopScore:   redTeleopScoreInt,
+				BlueTeleopScore:  blueTeleopScoreInt,
+				RedAutoScore:     redAutoScoreInt,
+				BlueAutoScore:    blueAutoScoreInt,
+				RedEndgameScore:  redEndgameScoreInt,
 				BlueEndgameScore: blueEndgameScoreInt,
-				RedScore:     redScoreInt,
-				BlueScore:    blueScoreInt,
-				RedWinRP:     redWinRP,
-				BlueWinRP:    blueWinRP,
-				RedBonusRP:   redBonusRPInt,
-				BlueBonusRP:  blueBonusRPInt,
+				RedScore:         redScoreInt,
+				BlueScore:        blueScoreInt,
+				RedWinRP:         redWinRP,
+				BlueWinRP:        blueWinRP,
+				RedBonusRP:       redBonusRPInt,
+				BlueBonusRP:      blueBonusRPInt,
 			}).Error; err != nil {
 				c.JSON(500, gin.H{"error": "Failed to update match"})
 				return
 			}
+
+			// Fetch usernames for broadcast
+			var redUser, blueUser models.User
+			if err := db.Where("mm_id = ?", redID).First(&redUser).Error; err != nil {
+				c.JSON(500, gin.H{"error": "Failed to fetch red user"})
+				return
+			}
+			if err := db.Where("mm_id = ?", blueID).First(&blueUser).Error; err != nil {
+				c.JSON(500, gin.H{"error": "Failed to fetch blue user"})
+				return
+			}
+
+			services.BroadcastLeaderboardUpdate(db)
+			services.EndScreenBroadcast(
+				[]string{redUser.PreferedUsername},
+				[]string{blueUser.PreferedUsername},
+			)
 
 			c.Redirect(302, "/admin/")
 		}

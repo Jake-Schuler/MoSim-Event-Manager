@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .title }}</title>
+</head>
+<body>
+    <style>
+        .status-bar {
+            height: 50px;
+            width: 965px;
+            background-color: #2d2b2d;
+            color: white;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            position: fixed;
+            bottom: 105px;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            z-index: 10;
+        }
+        
+        .status-bar.leaderboard-active {
+            bottom: 0;
+            left: 0;
+            width: 1880px;
+            transform: none;
+            padding: 0 20px;
+        }
+        
+        .status-bar.endscreen-active {
+            opacity: 0;
+            visibility: hidden;
+        }
+        
+        .status-bar.alliance-active {
+            opacity: 0;
+            visibility: hidden;
+        }
+        .status-bar p {
+            margin: 0;
+        }
+        .status-bar .logo-container {
+            flex: 0 0 auto;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            margin-right: 20px;
+        }
+        .status-bar .content-area {
+            flex: 1;
+            display: flex;
+            justify-content: space-evenly;
+            align-items: center;
+            margin-right: 20px;
+        }
+        .status-bar .match-container {
+            flex: 0 0 auto;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+        }
+        .status-bar img,
+        .status-bar .logo {
+            height: 40px;
+            width: 40px;
+            border-radius: 50%;
+        }
+        .status-bar .blueAlliance,
+        .status-bar .eventName,
+        .status-bar .redAlliance,
+        .status-bar .match {
+            text-align: center;
+            min-width: 0;
+        }
+        .status-bar .blueAlliance {
+            color: rgb(255, 255, 255);
+            filter: drop-shadow(0 0 5px rgba(0, 0, 255, 0.9));
+        }
+        .status-bar .redAlliance {
+            color: rgb(255, 255, 255);
+            filter: drop-shadow(0 0 5px rgba(255, 0, 0, .9));
+        }
+        .status-bar .eventName {
+            font-weight: bold;
+        }
+        .status-bar .match {
+            font-style: italic;
+        }
+        .leaderboard {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%) translateY(100%);
+            width: 1920px;
+            height: 1080px;
+            background: linear-gradient(135deg, #2d2b2d 0%, #1a1a1a 100%);
+            color: white;
+            padding: 80px 40px 40px 40px;
+            box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+            transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            overflow-y: auto;
+        }
+        
+        .leaderboard.show {
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        .leaderboard h1 {
+            text-align: center;
+            font-size: 48px;
+            margin-top: 60px;
+            margin-bottom: 40px;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            font-weight: bold;
+        }
+        
+        .leaderboard table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0 auto;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .leaderboard th {
+            background: linear-gradient(135deg, #4a4a4a 0%, #333 100%);
+            color: #fff;
+            padding: 20px 15px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 2px solid #555;
+        }
+        
+        .leaderboard td {
+            padding: 15px;
+            text-align: center;
+            font-size: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            transition: background-color 0.3s ease;
+        }
+        
+        .leaderboard tr:nth-child(even) {
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+        
+        .leaderboard tr:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+        }
+        
+        .leaderboard tbody tr:first-child td:first-child {
+            color: #ffd700;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(255, 215, 0, 0.5);
+        }
+        
+        .leaderboard tbody tr:nth-child(2) td:first-child {
+            color: #c0c0c0;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(192, 192, 192, 0.5);
+        }
+        
+        .leaderboard tbody tr:nth-child(3) td:first-child {
+            color: #cd7f32;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(205, 127, 50, 0.5);
+        }
+
+        .blueAlliance-endscreen,
+        .redAlliance-endscreen {
+            position: fixed;
+            height: 78px;
+            width: 302px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 24px;
+            color: #fff;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            bottom: 387px;
+            padding: 0 15px;
+            box-sizing: border-box;
+            border-radius: 8px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        
+        .endscreen.show .blueAlliance-endscreen,
+        .endscreen.show .redAlliance-endscreen {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .blueAlliance-endscreen {
+            right: 174px;
+            background-color: #0066b2;
+        }
+
+        .redAlliance-endscreen {
+            left: 174px;
+            background-color: #ed1c22;
+        }
+
+        .endscreen-content {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+
+        .endscreen-username {
+            flex: 1;
+            font-size: 38px;
+            font-weight: 500;
+            margin: 0;
+        }
+
+        .redAlliance-rank,
+        .blueAlliance-rank {
+            font-weight: bold;
+            font-size: 38px;
+            color: #fff;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            margin: 0;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #0f0;
+        }
+
+        /* Alliance Selection Styles */
+        .alliance-selection {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 1920px;
+            height: 1080px;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            z-index: 20;
+        }
+        
+        .alliance-selection.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .alliance-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            background: rgba(0, 0, 0, 0.3);
+            height: 0;
+            padding: 0;
+        }
+
+        .alliance-content {
+            display: flex;
+            height: 100vh;
+            padding: 20px 40px;
+            gap: 40px;
+        }
+        
+        .available-teams {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .available-teams h2 {
+            font-size: 36px;
+            margin: 0 0 30px 0;
+            text-align: center;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .teams-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .team-number {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            padding: 15px 10px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .team-number:hover {
+            background: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .alliances-section {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .alliances-section h2 {
+            font-size: 36px;
+            margin: 0 0 30px 0;
+            text-align: center;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .alliances-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+        
+        .alliance-slot {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #333;
+            padding: 20px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            font-weight: bold;
+            font-size: 48px;
+            min-height: 60px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .alliance-slot:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .alliance-number {
+            background: #333;
+            color: #ffd700;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: bold;
+            margin-right: 20px;
+            flex-shrink: 0;
+        }
+        
+        .alliance-teams {
+            flex: 1;
+            font-size: 18px;
+        }
+        
+        .alliance-captain {
+            color: #000000;
+            font-weight: bold;
+        }
+        
+        .alliance-pick {
+            color: #000000;
+            margin-left: 10px;
+        }
+        
+        .alliance-footer {
+            display: none;
+        }
+        
+        .reefscape-logo {
+            font-size: 36px;
+            font-weight: bold;
+            color: #2a5298;
+            margin-right: 30px;
+        }
+        
+        .event-info {
+            text-align: center;
+        }
+        
+        .event-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin: 0;
+        }
+        
+        .event-location {
+            font-size: 18px;
+            color: #666;
+            margin: 5px 0 0 0;
+            background: #b0c4de;
+            padding: 5px 15px;
+            border-radius: 15px;
+            display: inline-block;
+        }
+
+    </style>
+    <div class="leaderboard">
+        <h1>Leaderboard</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Username</th>
+                    <th>Ranking Points</th>
+                    <th>Total Points</th>
+                    <th>Auto Points</th>
+                    <th>Teleop Points</th>
+                    <th>Endgame Points</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+
+    </div>
+    <div class="status-bar">
+        <div class="logo-container">
+            <img src="/static/static/favicon.png" alt="Logo" class="logo">
+        </div>
+        <div class="content-area">
+            <p class="blueAlliance"></p>
+            <p class="eventName"></p>
+            <p class="redAlliance"></p>
+        </div>
+        <div class="match-container">
+            <p class="match"></p>
+        </div>
+    </div>
+    <div class="endscreen">
+        <div class="redAlliance-endscreen">
+            <div class="endscreen-content">
+                <p class="endscreen-username">User 2</p>
+            </div>
+            <p class="redAlliance-rank">3</p>
+        </div>
+        <div class="blueAlliance-endscreen">
+            <div class="endscreen-content">
+                <p class="endscreen-username">User 1</p>
+            </div>
+            <p class="blueAlliance-rank">1</p>
+        </div>
+    </div>
+    
+    <div class="alliance-selection">
+        <div class="alliance-content">
+            <div class="available-teams">
+                <h2>Available Teams</h2>
+                <div class="teams-grid">
+
+                </div>
+            </div>
+            <div class="alliances-section">
+                <h2>Alliances</h2>
+                <div class="alliances-grid">
+                    <div class="alliance-slot">
+                        <div class="alliance-number">1</div>
+                        <div class="alliance-teams">
+                            <span class="alliance-captain" id="alliance-1-captain"></span>
+                            <span class="alliance-pick" id="alliance-1-pick"></span>
+                        </div>
+                    </div>
+                    <div class="alliance-slot">
+                        <div class="alliance-number">2</div>
+                        <div class="alliance-teams">
+                            <span class="alliance-captain" id="alliance-2-captain"></span>
+                            <span class="alliance-pick" id="alliance-2-pick"></span>
+                        </div>
+                    </div>
+                    <div class="alliance-slot">
+                        <div class="alliance-number">3</div>
+                        <div class="alliance-teams">
+                            <span class="alliance-captain" id="alliance-3-captain"></span>
+                            <span class="alliance-pick" id="alliance-3-pick"></span>
+                        </div>
+                    </div>
+                    <div class="alliance-slot">
+                        <div class="alliance-number">4</div>
+                        <div class="alliance-teams">
+                            <span class="alliance-captain" id="alliance-4-captain"></span>
+                            <span class="alliance-pick" id="alliance-4-pick"></span>
+                        </div>
+                    </div>
+                    <div class="alliance-slot">
+                        <div class="alliance-number">5</div>
+                        <div class="alliance-teams">
+                            <span class="alliance-captain" id="alliance-5-captain"></span>
+                            <span class="alliance-pick" id="alliance-5-pick"></span>
+                        </div>
+                    </div>
+                    <div class="alliance-slot">
+                        <div class="alliance-number">6</div>
+                        <div class="alliance-teams">
+                            <span class="alliance-captain" id="alliance-6-captain"></span>
+                            <span class="alliance-pick" id="alliance-6-pick"></span>
+                        </div>
+                    </div>
+                    <div class="alliance-slot">
+                        <div class="alliance-number">7</div>
+                        <div class="alliance-teams">
+                            <span class="alliance-captain" id="alliance-7-captain"></span>
+                            <span class="alliance-pick" id="alliance-7-pick"></span>
+                        </div>
+                    </div>
+                    <div class="alliance-slot">
+                        <div class="alliance-number">8</div>
+                        <div class="alliance-teams">
+                            <span class="alliance-captain" id="alliance-8-captain"></span>
+                            <span class="alliance-pick" id="alliance-8-pick"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const socket = new WebSocket('ws://localhost:8080/ws');
+        let leaderboardData = [];
+        let availableTeams = [];
+        
+        socket.onopen = function() {
+            console.log('WebSocket connection established');
+            socket.send(JSON.stringify({
+                type: 'statusbar_init',
+                payload: {}
+            }));
+            // Request available teams data
+            socket.send(JSON.stringify({
+                type: 'request_available_teams',
+                payload: {}
+            }));
+        };
+        
+        socket.onerror = function(error) {
+            console.error('WebSocket error:', error);
+        };
+        
+        socket.onclose = function(event) {
+            console.log('WebSocket connection closed:', event);
+            // Attempt to reconnect after 3 seconds
+            setTimeout(() => {
+                console.log('Attempting to reconnect...');
+                location.reload();
+            }, 3000);
+        };
+        
+        function populateAvailableTeams() {
+            const teamsGrid = document.querySelector('.teams-grid');
+            teamsGrid.innerHTML = '';
+            
+            availableTeams.forEach(user => {
+                const teamDiv = document.createElement('div');
+                teamDiv.className = 'team-number';
+                teamDiv.textContent = user.PreferedUsername || user.Username;
+                teamDiv.dataset.userId = user.ID;
+                teamDiv.dataset.username = user.PreferedUsername || user.Username;
+                
+                // Add click handler for team selection
+                teamDiv.addEventListener('click', function() {
+                    selectTeam(this.dataset.username);
+                });
+                
+                teamsGrid.appendChild(teamDiv);
+            });
+        }
+        
+        function selectTeam(username) {
+            // Send team selection to server via WebSocket
+            socket.send(JSON.stringify({
+                type: 'team_selected',
+                payload: {
+                    username: username
+                }
+            }));
+        }
+        
+        function removeTeamFromAvailable(username) {
+            availableTeams = availableTeams.filter(user => 
+                (user.PreferedUsername !== username && user.Username !== username)
+            );
+            populateAvailableTeams();
+        }
+        
+        function showEndscreen(matchData) {
+            const statusBar = document.querySelector('.status-bar');
+            const endscreen = document.querySelector('.endscreen');
+            const redUsernameEl = document.querySelector('.endscreen-username');
+            const blueUsernameEl = document.querySelectorAll('.endscreen-username')[1];
+            const redRankEl = document.querySelector('.redAlliance-rank');
+            const blueRankEl = document.querySelector('.blueAlliance-rank');
+            
+            // Hide status bar
+            statusBar.classList.add('endscreen-active');
+            
+            // Show endscreen
+            endscreen.classList.add('show');
+            
+            // Update usernames from match data
+            if (matchData && matchData.red_alliance && matchData.blue_alliance) {
+                redUsernameEl.textContent = matchData.red_alliance.join(', ');
+                blueUsernameEl.textContent = matchData.blue_alliance.join(', ');
+                
+                // Find ranks from leaderboard data
+                const redPlayer = leaderboardData.find(user => 
+                    (user.PreferedUsername && matchData.red_alliance.includes(user.PreferedUsername)) ||
+                    matchData.red_alliance.includes(user.Username)
+                );
+                const bluePlayer = leaderboardData.find(user => 
+                    (user.PreferedUsername && matchData.blue_alliance.includes(user.PreferedUsername)) ||
+                    matchData.blue_alliance.includes(user.Username)
+                );
+                
+                redRankEl.textContent = redPlayer ? redPlayer.Rank || '—' : '—';
+                blueRankEl.textContent = bluePlayer ? bluePlayer.Rank || '—' : '—';
+            }
+        }
+        
+        function hideEndscreen() {
+            const statusBar = document.querySelector('.status-bar');
+            const endscreen = document.querySelector('.endscreen');
+            
+            // Show status bar
+            statusBar.classList.remove('endscreen-active');
+            
+            // Hide endscreen
+            endscreen.classList.remove('show');
+        }
+        
+        function showAllianceSelection() {
+            const statusBar = document.querySelector('.status-bar');
+            const allianceSelection = document.querySelector('.alliance-selection');
+            
+            // Hide status bar
+            statusBar.classList.add('alliance-active');
+            
+            // Show alliance selection
+            allianceSelection.classList.add('show');
+        }
+        
+        function hideAllianceSelection() {
+            const statusBar = document.querySelector('.status-bar');
+            const allianceSelection = document.querySelector('.alliance-selection');
+            
+            // Show status bar
+            statusBar.classList.remove('alliance-active');
+            
+            // Hide alliance selection
+            allianceSelection.classList.remove('show');
+        }
+        
+        function updateAllianceSelection(data) {
+            const captainEl = document.getElementById(`alliance-${data.alliance_number}-captain`);
+            const pickEl = document.getElementById(`alliance-${data.alliance_number}-pick`);
+            
+            if (captainEl && !captainEl.textContent) {
+                // If no captain yet, this is the captain
+                captainEl.textContent = data.alliance_captain;
+                removeTeamFromAvailable(data.alliance_captain);
+            } else if (pickEl && !pickEl.textContent) {
+                // If captain exists but no pick, this is the pick
+                pickEl.textContent = data.alliance_selection;
+                removeTeamFromAvailable(data.alliance_selection);
+            }
+        }
+        
+        socket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            switch (data.type) {
+                case 'active_match_update':
+                    document.querySelector('.blueAlliance').textContent = data.payload.blue_alliance.join(', ');
+                    document.querySelector('.eventName').textContent = data.payload.event_name || '';
+                    document.querySelector('.redAlliance').textContent = data.payload.red_alliance.join(', ');
+                    document.querySelector('.match').textContent = (data.payload.match_level === "Quals" ? "Q" : "M") + data.payload.match_id;
+                    hideEndscreen();
+                    break;
+                case 'match_saved':
+                    // Show endscreen when match is saved
+                    showEndscreen(data.payload);
+                    break;
+                case 'leaderboard_update':
+                    const leaderboard = document.querySelector('.leaderboard tbody');
+                    leaderboard.innerHTML = '';
+                    
+                    // Check if payload is an array directly or has a users property
+                    const users = Array.isArray(data.payload) ? data.payload : data.payload.users;
+                    
+                    if (users && Array.isArray(users)) {
+                        // Store leaderboard data for endscreen use
+                        leaderboardData = users.map((user, index) => ({
+                            ...user,
+                            Rank: index + 1
+                        }));
+                        
+                        users.forEach((user, index) => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `<td>${index + 1}</td>
+                                             <td>${user.PreferedUsername || user.Username}</td>
+                                             <td>${user.TotalRP}</td>
+                                             <td>${user.TotalPoints}</td>
+                                             <td>${user.AutoPoints}</td>
+                                             <td>${user.TeleopPoints}</td>
+                                             <td>${user.EndgamePoints}</td>`;
+                            leaderboard.appendChild(row);
+                        });
+                    } else {
+                        console.error('Invalid leaderboard data structure:', data.payload);
+                    }
+                    break;
+                case 'leaderboard_toggle':
+                    const leaderboardDiv = document.querySelector('.leaderboard');
+                    const statusBar = document.querySelector('.status-bar');
+                    if (data.payload.show) {
+                        leaderboardDiv.classList.add('show');
+                        statusBar.classList.add('leaderboard-active');
+                    } else {
+                        leaderboardDiv.classList.remove('show');
+                        statusBar.classList.remove('leaderboard-active');
+                    }
+                    break;
+                case 'alliance_selection':
+                    updateAllianceSelection(data.payload);
+                    break;
+                case 'available_teams_update':
+                    // Receive available teams from server
+                    console.log('Received available teams:', data.payload);
+                    if (data.payload.teams && Array.isArray(data.payload.teams)) {
+                        availableTeams = data.payload.teams;
+                        populateAvailableTeams();
+                    }
+                    break;
+                case 'team_selection_made':
+                    // Remove team when selection is made (from any source)
+                    if (data.payload.username) {
+                        removeTeamFromAvailable(data.payload.username);
+                    }
+                    break;
+                case 'alliance_selection_toggle':
+                    if (data.payload.show) {
+                        showAllianceSelection();
+                        // Request fresh available teams data when alliance selection is shown
+                        socket.send(JSON.stringify({
+                            type: 'request_available_teams',
+                            payload: {}
+                        }));
+                    } else {
+                        hideAllianceSelection();
+                    }
+                    break;
+                case 'alliance_selection_error':
+                    // Handle errors from alliance selection
+                    console.error('Alliance selection error:', data.payload.message);
+                    alert('Error: ' + data.payload.message);
+                    break;
+                case 'alliance_selection_success':
+                    // Handle successful alliance selection
+                    console.log('Alliance selection successful:', data.payload);
+                    break;
+            }
+        };
+    </script>
+</body>
+</html>

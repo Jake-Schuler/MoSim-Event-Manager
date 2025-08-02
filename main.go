@@ -10,6 +10,7 @@ import (
 
 	"github.com/Jake-Schuler/ORC-MatchMaker/config"
 	"github.com/Jake-Schuler/ORC-MatchMaker/handlers"
+	"github.com/Jake-Schuler/ORC-MatchMaker/services"
 )
 
 //go:embed static/*
@@ -26,6 +27,9 @@ func main() {
 
 	// Initialize database
 	db := config.InitDB()
+
+	// Initialize MMID counter based on existing users
+	services.GetMMID(db)
 
 	// Initialize Gin router
 	r := gin.Default()

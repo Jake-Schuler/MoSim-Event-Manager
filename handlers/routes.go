@@ -13,7 +13,8 @@ func SetupRoutes(r *gin.Engine, db *gorm.DB) {
 	r.GET("/register", RegisterHandler(db))
 	r.GET("/auth", RegisterHandler(db))
 	r.GET("/leaderboard", LeaderboardHandler(db))
-	r.GET("/ws", WebSocketHandler())
+	r.GET("/ws", WebSocketHandler(db))
+	r.GET("/overlay", OverlayHandler())
 
 	// Admin routes
 	authorized := r.Group("/admin", gin.BasicAuth(gin.Accounts{
@@ -27,4 +28,9 @@ func SetupRoutes(r *gin.Engine, db *gorm.DB) {
 	authorized.GET("/match/:id/edit", EditMatchesHandler(db))
 	authorized.POST("/match/:id/edit", EditMatchesHandler(db))
 	authorized.GET("/set_active_match", SetActiveMatchHandler(db))
+	authorized.GET("/set_event_name", SetEventNameHandler(db))
+	authorized.GET("/toggle_leaderboard", ToggleLeaderboardVisibilityHandler(db))
+	authorized.GET("/allianceSelection", AllianceSelectionHandler(db))
+	authorized.POST("/allianceSelection", AllianceSelectionHandler(db))
+	authorized.POST("/toggle_alliance_selection", ToggleAllianceSelectionHandler(db))
 }

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/static/dark-theme.css">
+    <title>{{ .title }}</title>
+    <link rel="icon" type="image/x-icon" href="/static/static/favicon.png">
+</head>
+<body>
+    <div class="container">
+        <h1>🤝 Alliance Selection</h1>
+        
+        <div class="nav-buttons">
+            <a href="/admin/" class="btn">← Back to Admin</a>
+            <button id="toggleAllianceSelection" class="btn">Toggle Alliance Selection</button>
+        </div>
+
+        <!-- Alliance Forms -->
+        <div id="alliances-container" class="forms-grid">
+            <!-- Forms will be injected here -->
+        </div>
+        
+        <div id="success-message" class="message success" style="display: none;">
+            Alliance selection saved successfully!
+        </div>
+    </div>
+    <script>
+        // Generate 8 alliance forms dynamically
+        const alliancesContainer = document.getElementById('alliances-container');
+        for (let i = 1; i <= 8; i++) {
+            const formDiv = document.createElement('div');
+            formDiv.className = 'alliance-form';
+            formDiv.innerHTML = `
+                <h3>🏆 Alliance ${i}</h3>
+                <form class="alliance alliance-${i}">
+                    <label for="alliance-${i}-captain">Alliance Captain:</label>
+                    <input type="text" id="alliance-${i}-captain" name="alliance-${i}-captain" placeholder="Enter captain's name">
+                    
+                    <label for="alliance-${i}-selection">Alliance Selection:</label>
+                    <input type="text" id="alliance-${i}-selection" name="alliance-${i}-selection" placeholder="Enter selected name">
+                    
+                    <button type="submit">💾 Save Alliance ${i}</button>
+                </form>
+            `;
+            alliancesContainer.appendChild(formDiv);
+        }
+
+        // Add event listeners for all alliance forms
+        for (let i = 1; i <= 8; i++) {
+            document.querySelector(`.alliance-${i}`).addEventListener('submit', function(event) {
+                event.preventDefault();
+                const captain = document.getElementById(`alliance-${i}-captain`).value;
+                const selection = document.getElementById(`alliance-${i}-selection`).value;
+                
+                if (!captain.trim()) {
+                    alert('Please enter a captain team number');
+                    return;
+                }
+                
+                fetch('/admin/allianceSelection', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        alliance: i,
+                        captain: captain,
+                        selection: selection
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.message) {
+                        const successMessage = document.getElementById('success-message');
+                        successMessage.style.display = 'block';
+                        setTimeout(() => {
+                            successMessage.style.display = 'none';
+                        }, 3000);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error saving alliance selection');
+                });
+            });
+        }
+
+        function toggleAllianceSelection() {
+            fetch('/admin/toggle_alliance_selection', {
+                method: 'POST',
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                window.location.reload();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        document.getElementById('toggleAllianceSelection').addEventListener('click', toggleAllianceSelection);
+    </script>
+</body>
+</html>

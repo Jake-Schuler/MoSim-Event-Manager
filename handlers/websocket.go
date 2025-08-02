@@ -6,9 +6,10 @@ import (
 
 	"github.com/Jake-Schuler/ORC-MatchMaker/services"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
-func WebSocketHandler() gin.HandlerFunc {
+func WebSocketHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Log the incoming request
 		log.Printf("WebSocket upgrade request from %s", c.ClientIP())
@@ -22,6 +23,6 @@ func WebSocketHandler() gin.HandlerFunc {
 		}
 
 		// Handle the WebSocket connection using the service
-		services.HandleWebSocketConnection(conn)
+		services.HandleWebSocketConnection(conn, db)
 	}
 }

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"sync"
@@ -9,6 +10,25 @@ import (
 	"github.com/gorilla/websocket"
 	"gorm.io/gorm"
 )
+
+var event_name = "Online Robotics Competition"
+var leaderboard_visible = false        // Track leaderboard visibility state
+var alliance_selection_visible = false // Track alliance selection visibility state
+
+// SetEventName updates the global event name
+func SetEventName(name string) {
+	event_name = name
+}
+
+// GetEventName returns the current event name
+func GetEventName() string {
+	return event_name
+}
+
+// GetLeaderboardVisibility returns the current leaderboard visibility state
+func GetLeaderboardVisibility() bool {
+	return leaderboard_visible
+}
 
 var Upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
@@ -19,7 +39,7 @@ var Upgrader = websocket.Upgrader{
 	},
 }
 
-func HandleWebSocketConnection(conn *websocket.Conn) {
+func HandleWebSocketConnection(conn *websocket.Conn, db *gorm.DB) {
 	defer func() {
 		Manager.RemoveConnection(conn)
 		conn.Close()
@@ -32,7 +52,7 @@ func HandleWebSocketConnection(conn *websocket.Conn) {
 
 	// Handle WebSocket messages in a loop
 	for {
-		messageType, message, err := conn.ReadMessage()
+		_, message, err := conn.ReadMessage()
 		if err != nil {
 			log.Printf("WebSocket read error: %v", err)
 			break
@@ -40,32 +60,64 @@ func HandleWebSocketConnection(conn *websocket.Conn) {
 
 		log.Printf("Received message: %s", message)
 
-		// Echo the message back (for now)
-		err = conn.WriteMessage(messageType, message)
+		// Parse JSON message
+		var wsMessage models.WebSocketMessage
+		err = json.Unmarshal(message, &wsMessage)
 		if err != nil {
-			log.Printf("WebSocket write error: %v", err)
-			break
+			log.Printf("Error parsing WebSocket message: %v", err)
+			continue
+		}
+
+		if wsMessage.Type == "statusbar_init" {
+			// Send initial status bar data
+			statusBarData := models.WebSocketMatchPayload{
+				RedAlliance:  []string{""},
+				BlueAlliance: []string{""},
+				EventName:    event_name,
+				MatchLevel:   "",
+				MatchID:      0,
+			}
+			response := models.WebSocketMessage{
+				Type:    "active_match_update",
+				Payload: statusBarData,
+			}
+			err = conn.WriteJSON(response)
+			if err != nil {
+				log.Printf("WebSocket write error for status bar: %v", err)
+				break
+			}
+			log.Println("Sent initial status bar data")
+		} else if wsMessage.Type == "request_available_teams" {
+			// Send available teams data
+			availableTeams := GetAvailableTeams(db)
+			response := models.WebSocketMessage{
+				Type: "available_teams_update",
+				Payload: map[string]interface{}{
+					"teams": availableTeams,
+				},
+			}
+			err = conn.WriteJSON(response)
+			if err != nil {
+				log.Printf("WebSocket write error for available teams: %v", err)
+				break
+			}
+			log.Println("Sent available teams data")
+		} else if wsMessage.Type == "team_selected" {
+			// Handle team selection from client
+			var payload map[string]interface{}
+			payloadBytes, _ := json.Marshal(wsMessage.Payload)
+			json.Unmarshal(payloadBytes, &payload)
+
+			if username, ok := payload["username"].(string); ok {
+				// Broadcast team selection to all clients
+				BroadcastTeamSelection(username)
+				log.Printf("Broadcasted team selection: %s", username)
+			}
 		}
 	}
 
 	log.Println("WebSocket connection closed")
-}
-
-func SetMatchLevel(conn *websocket.Conn, level string) error {
-	return conn.WriteJSON(models.WebSocketMessage{
-		Type:    "set_match_level",
-		Payload: level,
-	})
-}
-
-func SendMatchUpdate(conn *websocket.Conn, payload models.WebSocketPayload) error {
-	return conn.WriteJSON(models.WebSocketMessage{
-		Type:    "match_update",
-		Payload: payload,
-	})
-}
-
-// WebSocket connection manager
+} // WebSocket connection manager
 type ConnectionManager struct {
 	connections map[*websocket.Conn]bool
 	mutex       sync.RWMutex
@@ -128,9 +180,10 @@ func BroadcastActiveMatch(matchLevel string, matchID int, redPlayerID string, bl
 		blueUsername = bluePlayer.Username
 	}
 
-	payload := models.WebSocketPayload{
+	payload := models.WebSocketMatchPayload{
 		MatchLevel:   matchLevel,
 		MatchID:      matchID,
+		EventName:    event_name,
 		RedAlliance:  []string{redUsername},
 		BlueAlliance: []string{blueUsername},
 	}
@@ -140,4 +193,142 @@ func BroadcastActiveMatch(matchLevel string, matchID int, redPlayerID string, bl
 	}
 	Manager.Broadcast(message)
 	log.Printf("Broadcasted active match update: Level=%s, ID=%d, Red=%s, Blue=%s", matchLevel, matchID, redUsername, blueUsername)
+}
+
+func BroadcastLeaderboardUpdate(db *gorm.DB) {
+	leaderboard, err := GetLeaderboard(db)
+	if err != nil {
+		log.Printf("Error getting leaderboard for broadcast: %v", err)
+		return
+	}
+
+	message := models.WebSocketMessage{
+		Type:    "leaderboard_update",
+		Payload: leaderboard,
+	}
+	Manager.Broadcast(message)
+	log.Printf("Broadcasted leaderboard update: %d users", len(leaderboard))
+}
+
+func ToggleLeaderboardVisibility() {
+	leaderboard_visible = !leaderboard_visible // Toggle the global state
+	payload := models.WebSocketLeaderboardTogglePayload{
+		Show: leaderboard_visible,
+	}
+	message := models.WebSocketMessage{
+		Type:    "leaderboard_toggle",
+		Payload: payload,
+	}
+	Manager.Broadcast(message)
+	log.Printf("Broadcasted leaderboard visibility toggle: %v", leaderboard_visible)
+}
+
+func EndScreenBroadcast(redAlliance []string, blueAlliance []string) {
+	payload := models.WebSocketMatchSavedPayload{
+		RedAlliance:  redAlliance,
+		BlueAlliance: blueAlliance,
+	}
+	message := models.WebSocketMessage{
+		Type:    "match_saved",
+		Payload: payload,
+	}
+	Manager.Broadcast(message)
+	log.Printf("Broadcasted end screen match saved: Red=%v, Blue=%v", redAlliance, blueAlliance)
+}
+
+func BroadcastAllianceSelection(allianceSelection models.AllianceSelection) {
+	payload := models.WebSocketAllianceSelectionPayload{
+		AllianceNumber:    allianceSelection.AllianceNumber,
+		AllianceCaptain:   allianceSelection.AllianceCaptain,
+		AllianceSelection: allianceSelection.AllianceSelection,
+	}
+	message := models.WebSocketMessage{
+		Type:    "alliance_selection",
+		Payload: payload,
+	}
+	Manager.Broadcast(message)
+	log.Printf("Broadcasted alliance selection: %d, Captain=%s, Selection=%s",
+		allianceSelection.AllianceNumber, allianceSelection.AllianceCaptain, allianceSelection.AllianceSelection)
+}
+
+func ToggleAllianceSelectionVisibility() {
+	alliance_selection_visible = !alliance_selection_visible
+	payload := models.WebSocketToggleAllianceSlectionPayload{
+		Show: alliance_selection_visible,
+	}
+	message := models.WebSocketMessage{
+		Type:    "alliance_selection_toggle",
+		Payload: payload,
+	}
+	Manager.Broadcast(message)
+	log.Printf("Broadcasted alliance selection visibility toggle: %v", alliance_selection_visible)
+}
+
+// GetAvailableTeams returns users that haven't been selected for alliances yet
+func GetAvailableTeams(db *gorm.DB) []models.User {
+	var allUsers []models.User
+	var selectedUsers []string
+
+	// Get all users from database
+	if err := db.Find(&allUsers).Error; err != nil {
+		log.Printf("Error fetching users: %v", err)
+		return []models.User{}
+	}
+
+	// Get all alliance selections to find already selected users
+	var allianceSelections []models.AllianceSelection
+	if err := db.Find(&allianceSelections).Error; err != nil {
+		log.Printf("Error fetching alliance selections: %v", err)
+		// If we can't get alliance selections, return all users
+		return allUsers
+	}
+
+	// Collect all selected usernames (both captains and picks)
+	for _, selection := range allianceSelections {
+		if selection.AllianceCaptain != "" {
+			selectedUsers = append(selectedUsers, selection.AllianceCaptain)
+		}
+		if selection.AllianceSelection != "" {
+			selectedUsers = append(selectedUsers, selection.AllianceSelection)
+		}
+	}
+
+	// Filter out selected users
+	var availableUsers []models.User
+	for _, user := range allUsers {
+		username := user.PreferedUsername
+		if username == "" {
+			username = user.Username
+		}
+
+		// Check if this user is already selected
+		isSelected := false
+		for _, selectedUser := range selectedUsers {
+			if selectedUser == username {
+				isSelected = true
+				break
+			}
+		}
+
+		// If not selected, add to available list
+		if !isSelected {
+			availableUsers = append(availableUsers, user)
+		}
+	}
+
+	log.Printf("Found %d available teams out of %d total users", len(availableUsers), len(allUsers))
+	return availableUsers
+}
+
+// BroadcastTeamSelection notifies all clients that a team has been selected
+func BroadcastTeamSelection(username string) {
+	payload := map[string]interface{}{
+		"username": username,
+	}
+	message := models.WebSocketMessage{
+		Type:    "team_selection_made",
+		Payload: payload,
+	}
+	Manager.Broadcast(message)
+	log.Printf("Broadcasted team selection: %s", username)
 }

@@ -3,51 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="/static/static/style.css">
+    <link rel="stylesheet" href="/static/static/dark-theme.css">
     <title>Admin Dashboard</title>
     <link rel="icon" type="image/x-icon" href="/static/static/favicon.png">
+    <style>
+        h2 {
+            border-bottom: 3px solid #4fd1c7;
+            padding-bottom: 10px;
+            margin-top: 40px;
+        }
+        
+        #toggleLeaderboard {
+            background: linear-gradient(135deg, #68d391 0%, #48bb78 100%);
+            font-size: 18px;
+            padding: 15px 30px;
+            margin: 20px 0;
+        }
+        
+        .status-badge {
+            background: #68d391;
+            color: #1a202c;
+            padding: 4px 8px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+        
+        .private-badge {
+            background: #fc8181;
+            color: #1a202c;
+        }
+        
+        .form-section {
+            background: rgba(45, 55, 72, 0.6);
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .form-section form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: end;
+        }
+        
+        .action-card a {
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 1.1em;
+        }
+    </style>
 </head>
-<body class="container">
-    <h1>Welcome to the Admin Dashboard</h1>
-    <h2>Actions</h2>
-    <ul>
-        <li><a href="/admin/users">View Registered Users</a></li>
-        <li><a href="javascript:void(0);" onclick="toggleScheduleVisibility();">Toggle Schedule Visibility {{ if .isSchedulePublic }}(Currently Public){{ else }}(Currently Private){{ end }}</a></li>
-    </ul>
-    <h2>Generate Matches</h2>
-    <form id="generateForm" onsubmit="event.preventDefault(); generate();">
-        <label for="numberOfMatches">Number of Matches (per person):</label>
-        <input type="number" id="numberOfMatches" name="numberOfMatches" min="1" required>
-        <button type="submit">Generate Matches</button>
-    </form>
-    <h2>Match Schedule</h2>
-    <ul>
-        {{ range .matches }}
-            <li>
-                Match {{ .match }}: 
-                {{ if .team1.prefered_username }}
-                    {{ .team1.prefered_username }} ({{ .team1.mmid }})
-                {{ else if .team1.username }}
-                    {{ .team1.username }} ({{ .team1.mmid }})
-                {{ else if .error }}
-                    {{ .error }}
-                {{ else }}
-                    Unknown Player ({{ .team1.mmid }})
+<body>
+    <div class="container">
+        <h1>🎯 Admin Dashboard</h1>
+        
+        <h2>Quick Actions</h2>
+        <div class="actions-grid">
+            <div class="action-card">
+                <a href="/admin/users">👥 View Registered Users</a>
+            </div>
+            <div class="action-card">
+                <a href="/admin/allianceSelection">🤝 Alliance Selection</a>
+            </div>
+            <div class="action-card">
+                <a href="javascript:void(0);" onclick="toggleScheduleVisibility();">
+                    📅 Toggle Schedule Visibility 
+                    <span class="status-badge {{ if not .isSchedulePublic }}private-badge{{ end }}">
+                        {{ if .isSchedulePublic }}Public{{ else }}Private{{ end }}
+                    </span>
+                </a>
+            </div>
+        </div>
+        
+        <h2>Generate Matches</h2>
+        <div class="form-section">
+            <form id="generateForm" onsubmit="event.preventDefault(); generate();">
+                <div>
+                    <label for="numberOfMatches">Number of Matches (per person):</label>
+                    <input type="number" id="numberOfMatches" name="numberOfMatches" min="1" required>
+                </div>
+                <button type="submit">🎲 Generate Matches</button>
+            </form>
+        </div>
+        
+        <h2>Stream Controls</h2>
+        <div class="form-section">
+            <h3>Set Event Name</h3>
+            <form id="setEventNameForm" onsubmit="event.preventDefault(); setEventName();">
+                <div>
+                    <label for="eventName">Event Name:</label>
+                    <input type="text" id="eventName" name="eventName" value="{{ .eventName }}" required autocomplete="off">
+                </div>
+                <button type="submit">📝 Set Event Name</button>
+            </form>
+        </div>
+        
+        <div class="form-section">
+            <form id="setPlayoffMatchForm" onsubmit="event.preventDefault(); setPlayoffMatch();">
+                <div>
+                    <label for="playoffMatch">Playoff Match:</label>
+                    <input type="text" id="playoffMatch" name="playoffMatch" value="{{ .playoffMatch }}" required autocomplete="off">
+                </div>
+                <button type="submit">🏆 Set Playoff Match</button>
+            </form>
+        </div>
+        
+        <button id="toggleLeaderboard" onclick="toggleLeaderboard()">📊 Toggle Leaderboard</button>
+        
+        <h2>Match Schedule</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Match</th>
+                    <th>Red Alliance</th>
+                    <th>Blue Alliance</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{ range .matches }}
+                <tr>
+                    <td><strong>{{ .match }}</strong></td>
+                    <td>
+                        {{ if .team1.prefered_username }}
+                            {{ .team1.prefered_username }} <span style="color: #666;">({{ .team1.mmid }})</span>
+                        {{ else if .team1.username }}
+                            {{ .team1.username }} <span style="color: #666;">({{ .team1.mmid }})</span>
+                        {{ else if .error }}
+                            <span style="color: #f56565;">{{ .error }}</span>
+                        {{ else }}
+                            Unknown Player <span style="color: #666;">({{ .team1.mmid }})</span>
+                        {{ end }}
+                    </td>
+                    <td>
+                        {{ if .team2.prefered_username }}
+                            {{ .team2.prefered_username }} <span style="color: #666;">({{ .team2.mmid }})</span>
+                        {{ else if .team2.username }}
+                            {{ .team2.username }} <span style="color: #666;">({{ .team2.mmid }})</span>
+                        {{ else }}
+                            Unknown Player <span style="color: #666;">({{ .team2.mmid }})</span>
+                        {{ end }}
+                    </td>
+                    <td>
+                        <a href="/admin/set_active_match?id={{ .match }}&level=Quals">🎯 Set Active</a>
+                        <a href="/admin/match/{{ .match }}/edit">✏️ Edit</a>
+                    </td>
+                </tr>
                 {{ end }}
-                vs 
-                {{ if .team2.prefered_username }}
-                    {{ .team2.prefered_username }} ({{ .team2.mmid }})
-                {{ else if .team2.username }}
-                    {{ .team2.username }} ({{ .team2.mmid }})
-                {{ else }}
-                    Unknown Player ({{ .team2.mmid }})
-                {{ end }}
-                <a href="/admin/match/{{ .match }}/edit">[Edit]</a>
-            </li>
-        {{ end }}
-    </ul>
+            </tbody>
+        </table>
+    </div>
+    
     <script>
-
         function generate() {
             const numberOfMatches = document.getElementById('numberOfMatches').value;
             fetch('/admin/generate?' + new URLSearchParams({ numberofmatches: numberOfMatches }))
@@ -58,9 +169,9 @@
                 .catch(error => {
                     console.error('Error:', error);
                 });
-        setTimeout(() => {
-            window.location.reload();
-        }, 1000); // Reload after 1 second to reflect changes
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000); // Reload after 1 second to reflect changes
         }
         
         function toggleScheduleVisibility() {
@@ -75,6 +186,40 @@
             .catch(error => {
                 console.error('Error:', error);
             });
+        }
+
+        function setEventName() {
+            const eventName = document.getElementById('eventName').value;
+            fetch('/admin/set_event_name?eventName=' + encodeURIComponent(eventName), {
+                method: 'GET',
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('Event name set to: ' + data.eventName);
+                window.location.reload();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        function setPlayoffMatch() {
+            const playoffMatch = document.getElementById('playoffMatch').value;
+            fetch('/admin/set_playoff_match?level=Playoffs&match_id=' + encodeURIComponent(playoffMatch), {
+                method: 'GET',
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('Playoff match set to: ' + data.playoffMatch);
+                window.location.reload();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        function toggleLeaderboard() {
+            fetch('/admin/toggle_leaderboard')
         }
     </script>
 </body>

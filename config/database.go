@@ -15,5 +15,6 @@ func InitDB() *gorm.DB {
 
 	db.AutoMigrate(&models.User{})
 	db.AutoMigrate(&models.QualsMatch{})
+	db.AutoMigrate(&models.AllianceSelection{})
 	return db
 }

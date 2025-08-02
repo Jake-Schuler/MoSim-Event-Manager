@@ -16,6 +16,8 @@ import (
 func RegisterHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		access_token := c.Query("access_token")
+		preferred_name := c.Query("preferred_name") // Get preferred name from query parameter
+
 		if access_token == "" {
 			c.HTML(400, "authRedirect.tmpl", gin.H{
 				"error":       "access_token is required",
@@ -97,9 +99,10 @@ func RegisterHandler(db *gorm.DB) gin.HandlerFunc {
 		username, _ := userInfo["username"].(string)
 
 		db.Create(&models.User{
-			ID:       idInt,
-			Username: username,
-			MMID:     services.CurrentMMID,
+			ID:               idInt,
+			Username:         username,
+			PreferedUsername: preferred_name, // Set the preferred username
+			MMID:             services.CurrentMMID,
 		})
 		services.CurrentMMID++
 

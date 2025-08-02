@@ -3,9 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title></title>
+    <link rel="stylesheet" href="/static/static/dark-theme.css">
+    <title>Registration</title>
+    <link rel="icon" type="image/x-icon" href="/static/static/favicon.png">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #a0aec0;
+            font-style: italic;
+        }
+    </style>
 </head>
 <body>
+    <div class="container">
+        <div id="registration-form" style="display: none;">
+            <h1>🎮 Complete Your Registration</h1>
+            <form id="preferredNameForm">
+                <label for="preferredName">Enter your preferred display name:</label>
+                <input type="text" id="preferredName" name="preferredName" placeholder="Your preferred name" required>
+                <button type="submit">🚀 Complete Registration</button>
+            </form>
+        </div>
+        
+        <div id="loading" class="loading">
+            <h1>🔄 Setting up your registration...</h1>
+            <p>Please wait while we redirect you to Discord.</p>
+        </div>
+    </div>
     
     <script>
         window.onload = function() {
@@ -15,10 +51,23 @@
             const accessToken = params.get('access_token');
 
             if (accessToken) {
-                // Redirect to the /register endpoint with the access token
-                window.location.href = `/register?access_token=${accessToken}`;
+                // Hide loading and show the registration form
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('registration-form').style.display = 'block';
+                
+                // Handle form submission
+                document.getElementById('preferredNameForm').addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const preferredName = document.getElementById('preferredName').value;
+                    
+                    // Redirect to the /register endpoint with the access token and preferred name
+                    window.location.href = `/register?access_token=${accessToken}&preferred_name=${encodeURIComponent(preferredName)}`;
+                });
             } else {
-                window.location.href = 'https://discord.com/oauth2/authorize?client_id={{.ClientID}}&response_type=token&redirect_uri={{.RedirectURI}}&scope=identify';
+                // Redirect to Discord OAuth after a short delay
+                setTimeout(() => {
+                    window.location.href = 'https://discord.com/oauth2/authorize?client_id={{.ClientID}}&response_type=token&redirect_uri={{.RedirectURI}}&scope=identify';
+                }, 2000);
             }
         };
     </script>

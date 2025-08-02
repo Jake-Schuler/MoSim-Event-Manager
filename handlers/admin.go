@@ -52,7 +52,7 @@ func AdminUsersHandler(db *gorm.DB) gin.HandlerFunc {
 func SetActiveMatchHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Get match level and ID from query parameters
-		matchLevel := c.DefaultQuery("level", "Quals")
+		matchLevel := c.Query("level")
 		matchIDStr := c.Query("id")
 		if matchIDStr == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Missing match ID"})
@@ -80,7 +80,7 @@ func SetActiveMatchHandler(db *gorm.DB) gin.HandlerFunc {
 			strconv.Itoa(match.BluePlayerID),
 			db,
 		)
-
+		c.Redirect(http.StatusSeeOther, "/admin")
 		// Return success response
 		c.JSON(http.StatusOK, gin.H{
 			"message":      "Active match set and broadcasted",
@@ -96,6 +96,26 @@ func ToggleScheduleHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		SetSchedulePublic(!GetSchedulePublic())
 		c.JSON(200, gin.H{"isSchedulePublic": GetSchedulePublic()})
+	}
+}
+
+func ToggleLeaderboardVisibilityHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		services.ToggleLeaderboardVisibility()
+		c.JSON(200, gin.H{"message": "Leaderboard visibility toggled"})
+	}
+}
+
+func SetEventNameHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		eventName := c.Query("eventName")
+		if eventName == "" {
+			c.JSON(400, gin.H{"error": "Event name cannot be empty"})
+			return
+		}
+
+		services.SetEventName(eventName) // Update the global variable using a setter
+		c.JSON(200, gin.H{"message": "Event name updated", "eventName": eventName})
 	}
 }
 
