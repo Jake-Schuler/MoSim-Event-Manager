@@ -275,6 +275,32 @@ func GetAvailableTeams(db *gorm.DB) []models.User {
 		return []models.User{}
 	}
 
+	// Calculate RP and stats for each user to determine rank
+	for i := range allUsers {
+		winRP, bonusRP, AutoPoints, TeleopPoints, EndgamePoints := calculateUserStats(db, allUsers[i].MMID)
+		allUsers[i].WinRP = winRP
+		allUsers[i].BonusRP = bonusRP
+		allUsers[i].TotalRP = winRP + bonusRP
+		allUsers[i].TotalPoints = AutoPoints + TeleopPoints + EndgamePoints
+		allUsers[i].AutoPoints = AutoPoints
+		allUsers[i].TeleopPoints = TeleopPoints
+		allUsers[i].EndgamePoints = EndgamePoints
+	}
+
+	// Sort users by TotalRP (descending) to assign ranks
+	for i := 0; i < len(allUsers)-1; i++ {
+		for j := i + 1; j < len(allUsers); j++ {
+			if allUsers[i].TotalRP < allUsers[j].TotalRP {
+				allUsers[i], allUsers[j] = allUsers[j], allUsers[i]
+			}
+		}
+	}
+
+	// Assign ranks based on the sorted order
+	for i := range allUsers {
+		allUsers[i].Rank = i + 1
+	}
+
 	// Get all alliance selections to find already selected users
 	var allianceSelections []models.AllianceSelection
 	if err := db.Find(&allianceSelections).Error; err != nil {

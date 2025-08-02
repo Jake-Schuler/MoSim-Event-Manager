@@ -306,18 +306,50 @@
         .team-number {
             background: rgba(255, 255, 255, 0.9);
             color: #333;
-            padding: 15px 10px;
+            padding: 0;
             text-align: center;
             font-weight: bold;
             font-size: 18px;
             border-radius: 8px;
             transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            min-height: 20px;
+            max-height: 40px;
+            min-width: 240px;
+            overflow: hidden;
         }
         
         .team-number:hover {
             background: #fff;
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .team-name {
+            flex: 1;
+            padding: 20px 10px;
+            font-size: 18px;
+            color: #333;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .team-rank {
+            background: #555;
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+            padding: 0 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 40px;
+            height: 100%;
+            border-top-right-radius: 8px;
+            border-bottom-right-radius: 8px;
         }
         
         .alliances-section {
@@ -580,9 +612,14 @@
             availableTeams.forEach(user => {
                 const teamDiv = document.createElement('div');
                 teamDiv.className = 'team-number';
-                teamDiv.textContent = user.PreferedUsername || user.Username;
+                
+                // Display team name and rank
+                const displayName = user.PreferedUsername || user.Username;
+                const rank = user.Rank || '—';
+                teamDiv.innerHTML = `<div class="team-name">${displayName}</div><div class="team-rank">#${rank}</div>`;
+                
                 teamDiv.dataset.userId = user.ID;
-                teamDiv.dataset.username = user.PreferedUsername || user.Username;
+                teamDiv.dataset.username = displayName;
                 
                 // Add click handler for team selection
                 teamDiv.addEventListener('click', function() {
