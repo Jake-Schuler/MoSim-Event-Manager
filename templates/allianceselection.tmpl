@@ -14,8 +14,8 @@
         <div class="nav-buttons">
             <a href="/admin/" class="btn">← Back to Admin</a>
             <button id="toggleAllianceSelection" class="btn">Toggle Alliance Selection</button>
+            <button id="timer" class="btn">Start Timer</button>
         </div>
-
         <!-- Alliance Forms -->
         <div id="alliances-container" class="forms-grid">
             <!-- Forms will be injected here -->
@@ -101,6 +101,66 @@
         }
 
         document.getElementById('toggleAllianceSelection').addEventListener('click', toggleAllianceSelection);
+
+        // Timer functionality
+        let timeLeft = 30;
+        let timerInterval = null;
+        let isRunning = false;
+        
+        function updateTimerDisplay() {
+            const timerButton = document.getElementById('timer');
+            if (isRunning) {
+                timerButton.textContent = `⏰ ${timeLeft}s`;
+            } else {
+                timerButton.textContent = timeLeft === 30 ? 'Start Timer' : `⏸️ Paused (${timeLeft}s)`;
+            }
+        }
+        
+        function startTimer() {
+            isRunning = true;
+            updateTimerDisplay();
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                
+                if (timeLeft <= 0) {
+                    // Timer finished
+                    clearInterval(timerInterval);
+                    isRunning = false;
+                    timeLeft = 30;
+                    updateTimerDisplay();
+                    alert('⏰ Time\'s up!');
+                }
+            }, 1000);
+        }
+        
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            isRunning = false;
+            timeLeft = 30;
+            updateTimerDisplay();
+        }
+        
+        document.getElementById('timer').addEventListener('click', function() {
+            if (isRunning) {
+                // If running, stop and reset
+                stopTimer();
+            } else {
+                // If not running, start the timer
+                if (timeLeft !== 30) {
+                    // If paused, reset first
+                    timeLeft = 30;
+                }
+                startTimer();
+            }
+        });
+        
+        // Initialize timer display
+        updateTimerDisplay();
     </script>
 </body>
 </html>
