@@ -17,23 +17,23 @@ import (
 func AdminDashboardHandler(db *gorm.DB) gin.HandlerFunc {
 
 	return func(c *gin.Context) {
-		var match models.QualsMatch
-		if err := db.First(&match).Error; err != nil {
-			c.JSON(404, gin.H{"error": "Match not found"})
-			return
-		}
-
 		// Get all users for the dropdown
 		var users []models.User
 		if err := db.Find(&users).Error; err != nil {
 			c.JSON(500, gin.H{"error": "Failed to fetch users"})
 			return
 		}
+
+		// Try to get first match, but don't fail if none exist
+		var match models.QualsMatch
+		hasMatches := db.First(&match).Error == nil
+
 		c.HTML(200, "admin.tmpl", gin.H{
 			"title":            "Admin Dashboard",
 			"isSchedulePublic": GetSchedulePublic(),
 			"matches":          services.ParseMatchScheduleFromDB(),
 			"users":            users,
+			"hasMatches":       hasMatches,
 		})
 	}
 }
