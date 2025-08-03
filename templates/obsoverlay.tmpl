@@ -575,7 +575,13 @@
         </div>
     </div>
     <script>
-        const socket = new WebSocket('ws://localhost:8080/ws');
+        // Dynamically determine WebSocket protocol based on current page protocol
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.host;
+        const wsUrl = `${protocol}//${host}/ws`;
+        
+        console.log('Connecting to WebSocket:', wsUrl);
+        const socket = new WebSocket(wsUrl);
         let leaderboardData = [];
         let availableTeams = [];
         
