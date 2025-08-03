@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strconv"
 
+	"github.com/bwmarrin/discordgo"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
@@ -49,7 +50,7 @@ func AdminUsersHandler(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-func SetActiveMatchHandler(db *gorm.DB) gin.HandlerFunc {
+func SetActiveMatchHandler(db *gorm.DB, dg *discordgo.Session) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Get match level and ID from query parameters
 		matchLevel := c.Query("level")
@@ -80,6 +81,16 @@ func SetActiveMatchHandler(db *gorm.DB) gin.HandlerFunc {
 			strconv.Itoa(match.BluePlayerID),
 			db,
 		)
+
+		var redPlayer, bluePlayer models.User
+
+		// Find users by MMID
+		db.Where("mm_id = ?", match.RedPlayerID).First(&redPlayer)
+		db.Where("mm_id = ?", match.BluePlayerID).First(&bluePlayer)
+
+		dg.ChannelMessageSend(
+			os.Getenv("DISCORD_CHANNEL_ID"),
+			"Quals "+strconv.Itoa(matchID)+" will be <@"+strconv.Itoa(redPlayer.ID)+"> vs. <@"+strconv.Itoa(bluePlayer.ID)+">")
 		c.Redirect(http.StatusSeeOther, "/admin")
 		// Return success response
 		c.JSON(http.StatusOK, gin.H{

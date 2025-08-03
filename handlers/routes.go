@@ -3,11 +3,12 @@ package handlers
 import (
 	"os"
 
+	"github.com/bwmarrin/discordgo"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
-func SetupRoutes(r *gin.Engine, db *gorm.DB) {
+func SetupRoutes(r *gin.Engine, db *gorm.DB, dg *discordgo.Session) {
 	// Public routes
 	r.GET("/", HomeHandler(db))
 	r.GET("/register", RegisterHandler(db))
@@ -27,7 +28,7 @@ func SetupRoutes(r *gin.Engine, db *gorm.DB) {
 	authorized.GET("/generate", GenerateMatchesHandler(db))
 	authorized.GET("/match/:id/edit", EditMatchesHandler(db))
 	authorized.POST("/match/:id/edit", EditMatchesHandler(db))
-	authorized.GET("/set_active_match", SetActiveMatchHandler(db))
+	authorized.GET("/set_active_match", SetActiveMatchHandler(db, dg))
 	authorized.GET("/set_event_name", SetEventNameHandler(db))
 	authorized.GET("/toggle_leaderboard", ToggleLeaderboardVisibilityHandler(db))
 	authorized.GET("/allianceSelection", AllianceSelectionHandler(db))

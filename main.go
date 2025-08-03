@@ -31,13 +31,16 @@ func main() {
 	// Initialize MMID counter based on existing users
 	services.GetMMID(db)
 
+	// Initialize Discord Bot
+	dg := config.InitDiscordBot()
+
 	// Initialize Gin router
 	r := gin.Default()
 	r.SetHTMLTemplate(template.Must(template.New("").ParseFS(templates, "templates/*")))
 	r.StaticFS("/static", http.FS(static))
 
 	// Setup routes
-	handlers.SetupRoutes(r, db)
+	handlers.SetupRoutes(r, db, dg)
 
 	// Start server
 	if err := r.Run(":8080"); err != nil {
