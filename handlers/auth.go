@@ -106,8 +106,6 @@ func RegisterHandler(db *gorm.DB) gin.HandlerFunc {
 		})
 		services.CurrentMMID++
 
-		c.JSON(200, gin.H{
-			"message": "Registered successfully",
-		})
+		c.Redirect(http.StatusSeeOther, "/")
 	}
 }

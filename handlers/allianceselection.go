@@ -66,3 +66,17 @@ func ToggleAllianceSelectionHandler(db *gorm.DB) gin.HandlerFunc {
 		})
 	}
 }
+
+func ResetAllianceSelectionHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if err := db.Exec("DELETE FROM alliance_selections").Error; err != nil {
+			c.JSON(500, gin.H{"error": "Failed to reset alliance selections"})
+			return
+		}
+		services.ResetAllianceSelections()
+
+		c.JSON(200, gin.H{
+			"message": "Alliance selections reset successfully",
+		})
+	}
+}

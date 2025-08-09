@@ -14,6 +14,7 @@
         <div class="nav-buttons">
             <a href="/admin/" class="btn">← Back to Admin</a>
             <button id="toggleAllianceSelection" class="btn">Toggle Alliance Selection</button>
+            <burn id="resetAllianceSelections" class="btn">Reset Alliance Selections</burn>
             <button id="timer" class="btn">Start Timer</button>
         </div>
         <!-- Alliance Forms -->
@@ -161,6 +162,20 @@
         
         // Initialize timer display
         updateTimerDisplay();
+
+        document.getElementById('resetAllianceSelections').addEventListener('click', function() {
+            fetch('/admin/reset_alliance_selections', {
+                method: 'POST',
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                window.location.reload();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
     </script>
 </body>
 </html>

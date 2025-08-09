@@ -15,9 +15,18 @@ var event_name = "Online Robotics Competition"
 var leaderboard_visible = false        // Track leaderboard visibility state
 var alliance_selection_visible = false // Track alliance selection visibility state
 
+// Global state variables to persist WebSocket state
+var current_match_state *models.WebSocketMatchPayload
+var current_leaderboard_state []models.User
+var current_alliance_selections []models.AllianceSelection
+
 // SetEventName updates the global event name
 func SetEventName(name string) {
 	event_name = name
+	// Update current match state if it exists
+	if current_match_state != nil {
+		current_match_state.EventName = name
+	}
 }
 
 // GetEventName returns the current event name
@@ -28,6 +37,11 @@ func GetEventName() string {
 // GetLeaderboardVisibility returns the current leaderboard visibility state
 func GetLeaderboardVisibility() bool {
 	return leaderboard_visible
+}
+
+func ResetAllianceSelections() {
+	current_alliance_selections = nil
+	log.Println("Reset current alliance selections")
 }
 
 var Upgrader = websocket.Upgrader{
@@ -69,14 +83,20 @@ func HandleWebSocketConnection(conn *websocket.Conn, db *gorm.DB) {
 		}
 
 		if wsMessage.Type == "statusbar_init" {
-			// Send initial status bar data
-			statusBarData := models.WebSocketMatchPayload{
-				RedAlliance:  []string{""},
-				BlueAlliance: []string{""},
-				EventName:    event_name,
-				MatchLevel:   "",
-				MatchID:      0,
+			// Send initial status bar data - use stored state if available
+			var statusBarData models.WebSocketMatchPayload
+			if current_match_state != nil {
+				statusBarData = *current_match_state
+			} else {
+				statusBarData = models.WebSocketMatchPayload{
+					RedAlliance:  []string{""},
+					BlueAlliance: []string{""},
+					EventName:    event_name,
+					MatchLevel:   "",
+					MatchID:      0,
+				}
 			}
+
 			response := models.WebSocketMessage{
 				Type:    "active_match_update",
 				Payload: statusBarData,
@@ -87,6 +107,69 @@ func HandleWebSocketConnection(conn *websocket.Conn, db *gorm.DB) {
 				break
 			}
 			log.Println("Sent initial status bar data")
+
+			// Send current leaderboard state if available
+			if current_leaderboard_state != nil {
+				leaderboardResponse := models.WebSocketMessage{
+					Type:    "leaderboard_update",
+					Payload: current_leaderboard_state,
+				}
+				err = conn.WriteJSON(leaderboardResponse)
+				if err != nil {
+					log.Printf("WebSocket write error for leaderboard: %v", err)
+				} else {
+					log.Println("Sent stored leaderboard data")
+				}
+			}
+
+			// Send current leaderboard visibility state
+			leaderboardToggle := models.WebSocketMessage{
+				Type: "leaderboard_toggle",
+				Payload: models.WebSocketLeaderboardTogglePayload{
+					Show: leaderboard_visible,
+				},
+			}
+			err = conn.WriteJSON(leaderboardToggle)
+			if err != nil {
+				log.Printf("WebSocket write error for leaderboard toggle: %v", err)
+			} else {
+				log.Printf("Sent leaderboard visibility state: %v", leaderboard_visible)
+			}
+
+			// Send current alliance selection visibility state
+			allianceToggle := models.WebSocketMessage{
+				Type: "alliance_selection_toggle",
+				Payload: models.WebSocketToggleAllianceSlectionPayload{
+					Show: alliance_selection_visible,
+				},
+			}
+			err = conn.WriteJSON(allianceToggle)
+			if err != nil {
+				log.Printf("WebSocket write error for alliance toggle: %v", err)
+			} else {
+				log.Printf("Sent alliance selection visibility state: %v", alliance_selection_visible)
+			}
+
+			// Send current alliance selections if any exist
+			if len(current_alliance_selections) > 0 {
+				for _, selection := range current_alliance_selections {
+					if selection.AllianceCaptain != "" || selection.AllianceSelection != "" {
+						allianceResponse := models.WebSocketMessage{
+							Type: "alliance_selection",
+							Payload: models.WebSocketAllianceSelectionPayload{
+								AllianceNumber:    selection.AllianceNumber,
+								AllianceCaptain:   selection.AllianceCaptain,
+								AllianceSelection: selection.AllianceSelection,
+							},
+						}
+						err = conn.WriteJSON(allianceResponse)
+						if err != nil {
+							log.Printf("WebSocket write error for alliance selection: %v", err)
+						}
+					}
+				}
+				log.Println("Sent stored alliance selection data")
+			}
 		} else if wsMessage.Type == "request_available_teams" {
 			// Send available teams data
 			availableTeams := GetAvailableTeams(db)
@@ -187,6 +270,10 @@ func BroadcastActiveMatch(matchLevel string, matchID int, redPlayerID string, bl
 		RedAlliance:  []string{redUsername},
 		BlueAlliance: []string{blueUsername},
 	}
+
+	// Store the current match state
+	current_match_state = &payload
+
 	message := models.WebSocketMessage{
 		Type:    "active_match_update",
 		Payload: payload,
@@ -201,6 +288,9 @@ func BroadcastLeaderboardUpdate(db *gorm.DB) {
 		log.Printf("Error getting leaderboard for broadcast: %v", err)
 		return
 	}
+
+	// Store the current leaderboard state
+	current_leaderboard_state = leaderboard
 
 	message := models.WebSocketMessage{
 		Type:    "leaderboard_update",
@@ -234,6 +324,9 @@ func EndScreenBroadcast(redAlliance []string, blueAlliance []string) {
 	}
 	Manager.Broadcast(message)
 	log.Printf("Broadcasted end screen match saved: Red=%v, Blue=%v", redAlliance, blueAlliance)
+
+	// Clear the current match state since the match has ended
+	ClearMatchState()
 }
 
 func BroadcastAllianceSelection(allianceSelection models.AllianceSelection) {
@@ -242,6 +335,10 @@ func BroadcastAllianceSelection(allianceSelection models.AllianceSelection) {
 		AllianceCaptain:   allianceSelection.AllianceCaptain,
 		AllianceSelection: allianceSelection.AllianceSelection,
 	}
+
+	// Update current alliance selections state
+	updateCurrentAllianceSelections(allianceSelection)
+
 	message := models.WebSocketMessage{
 		Type:    "alliance_selection",
 		Payload: payload,
@@ -357,4 +454,56 @@ func BroadcastTeamSelection(username string) {
 	}
 	Manager.Broadcast(message)
 	log.Printf("Broadcasted team selection: %s", username)
+}
+
+// updateCurrentAllianceSelections updates the current alliance selections state
+func updateCurrentAllianceSelections(newSelection models.AllianceSelection) {
+	if current_alliance_selections == nil {
+		current_alliance_selections = make([]models.AllianceSelection, 0)
+	}
+
+	// Find existing alliance selection or add new one
+	found := false
+	for i, selection := range current_alliance_selections {
+		if selection.AllianceNumber == newSelection.AllianceNumber {
+			current_alliance_selections[i] = newSelection
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		current_alliance_selections = append(current_alliance_selections, newSelection)
+	}
+}
+
+// InitializeWebSocketState loads the current state from the database
+func InitializeWebSocketState(db *gorm.DB) {
+	log.Println("Initializing WebSocket state from database...")
+
+	// Load current alliance selections
+	var allianceSelections []models.AllianceSelection
+	if err := db.Find(&allianceSelections).Error; err != nil {
+		log.Printf("Error loading alliance selections: %v", err)
+	} else {
+		current_alliance_selections = allianceSelections
+		log.Printf("Loaded %d alliance selections", len(allianceSelections))
+	}
+
+	// Load current leaderboard
+	if leaderboard, err := GetLeaderboard(db); err == nil {
+		current_leaderboard_state = leaderboard
+		log.Printf("Loaded leaderboard with %d users", len(leaderboard))
+	} else {
+		log.Printf("Error loading leaderboard: %v", err)
+	}
+
+	log.Println("WebSocket state initialization complete")
+}
+
+// ClearMatchState clears the current match state (useful when match ends)
+func ClearMatchState() {
+	current_match_state = nil
+	current_alliance_selections = nil
+	log.Println("Cleared current match state and alliance selections")
 }

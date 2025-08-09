@@ -67,20 +67,20 @@
                 <input type="number" id="blueAutoScore" name="blueAutoScore" value="{{ .match.BlueAutoScore }}" required min="0">
             </div>
             <div class="red-alliance">
-                <label for="redTeleopScore">🔴 Red Teleop Score:</label>
-                <input type="number" id="redTeleopScore" name="redTeleopScore" value="{{ .match.RedTeleopScore }}" required min="0">
-            </div>
-            <div class="blue-alliance">
-                <label for="blueTeleopScore">🔵 Blue Teleop Score:</label>
-                <input type="number" id="blueTeleopScore" name="blueTeleopScore" value="{{ .match.BlueTeleopScore }}" required min="0">
-            </div>
-            <div class="red-alliance">
                 <label for="redEndgameScore">🔴 Red Endgame Score:</label>
                 <input type="number" id="redEndgameScore" name="redEndgameScore" value="{{ .match.RedEndgameScore }}" required min="0">
             </div>
             <div class="blue-alliance">
                 <label for="blueEndgameScore">🔵 Blue Endgame Score:</label>
                 <input type="number" id="blueEndgameScore" name="blueEndgameScore" value="{{ .match.BlueEndgameScore }}" required min="0">
+            </div>
+            <div class="red-alliance">
+                <label for="redTotalScore">🔴 Red Total Score:</label>
+                <input type="number" id="redTotalScore" name="redTotalScore" value="{{ .match.RedScore }}" required min="0">
+            </div>
+            <div class="blue-alliance">
+                <label for="blueTotalScore">🔵 Blue Total Score:</label>
+                <input type="number" id="blueTotalScore" name="blueTotalScore" value="{{ .match.BlueScore }}" required min="0">
             </div>
             <div class="red-alliance">
                 <label for="redBonusRP">🔴 Red Bonus RP:</label>
@@ -90,7 +90,9 @@
                 <label for="blueBonusRP">🔵 Blue Bonus RP:</label>
                 <input type="number" id="blueBonusRP" name="blueBonusRP" value="{{ .match.BlueBonusRP }}" required>
             </div>
-            <button type="submit">💾 Save Changes</button>
+            <div style="grid-column: 1 / -1; text-align: center; margin-top: 20px;">
+                <button type="submit">💾 Save Changes</button>
+            </div>
         </form>
     </div>
 </body>

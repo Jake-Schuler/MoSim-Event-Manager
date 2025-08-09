@@ -581,35 +581,152 @@
         const wsUrl = `${protocol}//${host}/ws`;
         
         console.log('Connecting to WebSocket:', wsUrl);
-        const socket = new WebSocket(wsUrl);
+        let socket = new WebSocket(wsUrl);
         let leaderboardData = [];
         let availableTeams = [];
         
-        socket.onopen = function() {
-            console.log('WebSocket connection established');
-            socket.send(JSON.stringify({
-                type: 'statusbar_init',
-                payload: {}
-            }));
-            // Request available teams data
-            socket.send(JSON.stringify({
-                type: 'request_available_teams',
-                payload: {}
-            }));
-        };
-        
-        socket.onerror = function(error) {
-            console.error('WebSocket error:', error);
-        };
+        // Set up initial WebSocket handlers
+        setupWebSocketHandlers(socket);
         
         socket.onclose = function(event) {
             console.log('WebSocket connection closed:', event);
-            // Attempt to reconnect after 3 seconds
             setTimeout(() => {
-                console.log('Attempting to reconnect...');
-                location.reload();
+                // Attempt to reconnect after 3 seconds
+                console.log('Reconnecting WebSocket...');
+                socket = new WebSocket(wsUrl);
+                setupWebSocketHandlers(socket);
             }, 3000);
         };
+        
+        function setupWebSocketHandlers(ws) {
+            ws.onopen = function() {
+                console.log('WebSocket connection established');
+                // Clear any existing state to prepare for fresh data
+                clearAllAllianceSelections();
+                availableTeams = [];
+                populateAvailableTeams();
+                
+                ws.send(JSON.stringify({
+                    type: 'statusbar_init',
+                    payload: {}
+                }));
+                // Request available teams data
+                ws.send(JSON.stringify({
+                    type: 'request_available_teams',
+                    payload: {}
+                }));
+            };
+            
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+            };
+            
+            ws.onclose = function(event) {
+                console.log('WebSocket connection closed:', event);
+                setTimeout(() => {
+                    // Attempt to reconnect after 3 seconds
+                    console.log('Reconnecting WebSocket...');
+                    socket = new WebSocket(wsUrl);
+                    setupWebSocketHandlers(socket);
+                }, 3000);
+            };
+            
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                switch (data.type) {
+                    case 'active_match_update':
+                        document.querySelector('.blueAlliance').textContent = data.payload.blue_alliance.join(', ');
+                        document.querySelector('.eventName').textContent = data.payload.event_name || '';
+                        document.querySelector('.redAlliance').textContent = data.payload.red_alliance.join(', ');
+                        document.querySelector('.match').textContent = (data.payload.match_level === "Quals" ? "Q" : "M") + data.payload.match_id;
+                        hideEndscreen();
+                        break;
+                    case 'match_saved':
+                        // Show endscreen when match is saved
+                        showEndscreen(data.payload);
+                        break;
+                    case 'leaderboard_update':
+                        const leaderboard = document.querySelector('.leaderboard tbody');
+                        leaderboard.innerHTML = '';
+                        
+                        // Check if payload is an array directly or has a users property
+                        const users = Array.isArray(data.payload) ? data.payload : data.payload.users;
+                        
+                        if (users && Array.isArray(users)) {
+                            // Store leaderboard data for endscreen use
+                            leaderboardData = users.map((user, index) => ({
+                                ...user,
+                                Rank: index + 1
+                            }));
+                            
+                            users.forEach((user, index) => {
+                                const row = document.createElement('tr');
+                                row.innerHTML = `<td>${index + 1}</td>
+                                                 <td>${user.PreferedUsername || user.Username}</td>
+                                                 <td>${user.TotalRP}</td>
+                                                 <td>${user.TotalPoints}</td>
+                                                 <td>${user.AutoPoints}</td>
+                                                 <td>${user.TeleopPoints}</td>
+                                                 <td>${user.EndgamePoints}</td>`;
+                                leaderboard.appendChild(row);
+                            });
+                        } else {
+                            console.error('Invalid leaderboard data structure:', data.payload);
+                        }
+                        break;
+                    case 'leaderboard_toggle':
+                        const leaderboardDiv = document.querySelector('.leaderboard');
+                        const statusBar = document.querySelector('.status-bar');
+                        if (data.payload.show) {
+                            leaderboardDiv.classList.add('show');
+                            statusBar.classList.add('leaderboard-active');
+                            hideEndscreen();
+                        } else {
+                            leaderboardDiv.classList.remove('show');
+                            statusBar.classList.remove('leaderboard-active');
+                        }
+                        break;
+                    case 'alliance_selection':
+                        updateAllianceSelection(data.payload);
+                        break;
+                    case 'available_teams_update':
+                        // Receive available teams from server
+                        console.log('Received available teams:', data.payload);
+                        if (data.payload.teams && Array.isArray(data.payload.teams)) {
+                            availableTeams = data.payload.teams;
+                            populateAvailableTeams();
+                        }
+                        break;
+                    case 'team_selection_made':
+                        // Remove team when selection is made (from any source)
+                        if (data.payload.username) {
+                            removeTeamFromAvailable(data.payload.username);
+                        }
+                        break;
+                    case 'alliance_selection_toggle':
+                        if (data.payload.show) {
+                            showAllianceSelection();
+                            // Request fresh available teams data when alliance selection is shown
+                            ws.send(JSON.stringify({
+                                type: 'request_available_teams',
+                                payload: {}
+                            }));
+                        } else {
+                            hideAllianceSelection();
+                        }
+                        break;
+                    case 'alliance_selection_error':
+                        // Handle errors from alliance selection
+                        console.error('Alliance selection error:', data.payload.message);
+                        alert('Error: ' + data.payload.message);
+                        break;
+                    case 'alliance_selection_success':
+                        // Handle successful alliance selection
+                        console.log('Alliance selection successful:', data.payload);
+                        break;
+                }
+            };
+        }
         
         function populateAvailableTeams() {
             const teamsGrid = document.querySelector('.teams-grid');
@@ -651,6 +768,16 @@
                 (user.PreferedUsername !== username && user.Username !== username)
             );
             populateAvailableTeams();
+        }
+        
+        function clearAllAllianceSelections() {
+            console.log('Clearing all alliance selections');
+            for (let i = 1; i <= 8; i++) {
+                const captainEl = document.getElementById(`alliance-${i}-captain`);
+                const pickEl = document.getElementById(`alliance-${i}-pick`);
+                if (captainEl) captainEl.textContent = '';
+                if (pickEl) pickEl.textContent = '';
+            }
         }
         
         function showEndscreen(matchData) {
@@ -721,114 +848,23 @@
         }
         
         function updateAllianceSelection(data) {
+            console.log('Updating alliance selection with data:', data);
             const captainEl = document.getElementById(`alliance-${data.alliance_number}-captain`);
             const pickEl = document.getElementById(`alliance-${data.alliance_number}-pick`);
             
-            if (captainEl && !captainEl.textContent) {
-                // If no captain yet, this is the captain
+            // For state restoration, directly set the values if they exist
+            if (data.alliance_captain && captainEl) {
+                console.log(`Setting captain for alliance ${data.alliance_number}: ${data.alliance_captain}`);
                 captainEl.textContent = data.alliance_captain;
                 removeTeamFromAvailable(data.alliance_captain);
-            } else if (pickEl && !pickEl.textContent) {
-                // If captain exists but no pick, this is the pick
+            }
+            
+            if (data.alliance_selection && pickEl) {
+                console.log(`Setting pick for alliance ${data.alliance_number}: ${data.alliance_selection}`);
                 pickEl.textContent = data.alliance_selection;
                 removeTeamFromAvailable(data.alliance_selection);
             }
         }
-        
-        socket.onmessage = function(event) {
-            const data = JSON.parse(event.data);
-            switch (data.type) {
-                case 'active_match_update':
-                    document.querySelector('.blueAlliance').textContent = data.payload.blue_alliance.join(', ');
-                    document.querySelector('.eventName').textContent = data.payload.event_name || '';
-                    document.querySelector('.redAlliance').textContent = data.payload.red_alliance.join(', ');
-                    document.querySelector('.match').textContent = (data.payload.match_level === "Quals" ? "Q" : "M") + data.payload.match_id;
-                    hideEndscreen();
-                    break;
-                case 'match_saved':
-                    // Show endscreen when match is saved
-                    showEndscreen(data.payload);
-                    break;
-                case 'leaderboard_update':
-                    const leaderboard = document.querySelector('.leaderboard tbody');
-                    leaderboard.innerHTML = '';
-                    
-                    // Check if payload is an array directly or has a users property
-                    const users = Array.isArray(data.payload) ? data.payload : data.payload.users;
-                    
-                    if (users && Array.isArray(users)) {
-                        // Store leaderboard data for endscreen use
-                        leaderboardData = users.map((user, index) => ({
-                            ...user,
-                            Rank: index + 1
-                        }));
-                        
-                        users.forEach((user, index) => {
-                            const row = document.createElement('tr');
-                            row.innerHTML = `<td>${index + 1}</td>
-                                             <td>${user.PreferedUsername || user.Username}</td>
-                                             <td>${user.TotalRP}</td>
-                                             <td>${user.TotalPoints}</td>
-                                             <td>${user.AutoPoints}</td>
-                                             <td>${user.TeleopPoints}</td>
-                                             <td>${user.EndgamePoints}</td>`;
-                            leaderboard.appendChild(row);
-                        });
-                    } else {
-                        console.error('Invalid leaderboard data structure:', data.payload);
-                    }
-                    break;
-                case 'leaderboard_toggle':
-                    const leaderboardDiv = document.querySelector('.leaderboard');
-                    const statusBar = document.querySelector('.status-bar');
-                    if (data.payload.show) {
-                        leaderboardDiv.classList.add('show');
-                        statusBar.classList.add('leaderboard-active');
-                    } else {
-                        leaderboardDiv.classList.remove('show');
-                        statusBar.classList.remove('leaderboard-active');
-                    }
-                    break;
-                case 'alliance_selection':
-                    updateAllianceSelection(data.payload);
-                    break;
-                case 'available_teams_update':
-                    // Receive available teams from server
-                    console.log('Received available teams:', data.payload);
-                    if (data.payload.teams && Array.isArray(data.payload.teams)) {
-                        availableTeams = data.payload.teams;
-                        populateAvailableTeams();
-                    }
-                    break;
-                case 'team_selection_made':
-                    // Remove team when selection is made (from any source)
-                    if (data.payload.username) {
-                        removeTeamFromAvailable(data.payload.username);
-                    }
-                    break;
-                case 'alliance_selection_toggle':
-                    if (data.payload.show) {
-                        showAllianceSelection();
-                        // Request fresh available teams data when alliance selection is shown
-                        socket.send(JSON.stringify({
-                            type: 'request_available_teams',
-                            payload: {}
-                        }));
-                    } else {
-                        hideAllianceSelection();
-                    }
-                    break;
-                case 'alliance_selection_error':
-                    // Handle errors from alliance selection
-                    console.error('Alliance selection error:', data.payload.message);
-                    alert('Error: ' + data.payload.message);
-                    break;
-                case 'alliance_selection_success':
-                    // Handle successful alliance selection
-                    console.log('Alliance selection successful:', data.payload);
-                    break;
-            }
-        };
     </script>
 </body>
 </html>

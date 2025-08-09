@@ -28,6 +28,9 @@ func main() {
 	// Initialize database
 	db := config.InitDB()
 
+	// Initialize WebSocket state from database
+	services.InitializeWebSocketState(db)
+
 	// Initialize MMID counter based on existing users
 	services.GetMMID(db)
 

@@ -14,6 +14,7 @@ func SetupRoutes(r *gin.Engine, db *gorm.DB, dg *discordgo.Session) {
 	r.GET("/register", RegisterHandler(db))
 	r.GET("/auth", RegisterHandler(db))
 	r.GET("/leaderboard", LeaderboardHandler(db))
+	r.GET("/matches", MatchResultsHandler(db))
 	r.GET("/ws", WebSocketHandler(db))
 	r.GET("/overlay", OverlayHandler())
 
@@ -28,10 +29,12 @@ func SetupRoutes(r *gin.Engine, db *gorm.DB, dg *discordgo.Session) {
 	authorized.GET("/generate", GenerateMatchesHandler(db))
 	authorized.GET("/match/:id/edit", EditMatchesHandler(db))
 	authorized.POST("/match/:id/edit", EditMatchesHandler(db))
+	authorized.GET("/match/:id/endgame", ShowEndgameScreenHandler(db))
 	authorized.GET("/set_active_match", SetActiveMatchHandler(db, dg))
 	authorized.GET("/set_event_name", SetEventNameHandler(db))
 	authorized.GET("/toggle_leaderboard", ToggleLeaderboardVisibilityHandler(db))
 	authorized.GET("/allianceSelection", AllianceSelectionHandler(db))
 	authorized.POST("/allianceSelection", AllianceSelectionHandler(db))
 	authorized.POST("/toggle_alliance_selection", ToggleAllianceSelectionHandler(db))
+	authorized.POST("/reset_alliance_selections", ResetAllianceSelectionHandler(db))
 }

@@ -73,24 +73,36 @@ func SetActiveMatchHandler(db *gorm.DB, dg *discordgo.Session) gin.HandlerFunc {
 			return
 		}
 
-		// Broadcast the active match update to all WebSocket clients
-		services.BroadcastActiveMatch(
-			matchLevel,
-			matchID,
-			strconv.Itoa(match.RedPlayerID),
-			strconv.Itoa(match.BluePlayerID),
-			db,
-		)
+		switch matchLevel {
+		case "Quals":
+			// Broadcast the active match update to all WebSocket clients
+			services.BroadcastActiveMatch(
+				matchLevel,
+				matchID,
+				strconv.Itoa(match.RedPlayerID),
+				strconv.Itoa(match.BluePlayerID),
+				db,
+			)
 
-		var redPlayer, bluePlayer models.User
+			var redPlayer, bluePlayer models.User
 
-		// Find users by MMID
-		db.Where("mm_id = ?", match.RedPlayerID).First(&redPlayer)
-		db.Where("mm_id = ?", match.BluePlayerID).First(&bluePlayer)
+			// Find users by MMID
+			db.Where("mm_id = ?", match.RedPlayerID).First(&redPlayer)
+			db.Where("mm_id = ?", match.BluePlayerID).First(&bluePlayer)
 
-		dg.ChannelMessageSend(
-			os.Getenv("DISCORD_CHANNEL_ID"),
-			"Quals "+strconv.Itoa(matchID)+" will be <@"+strconv.Itoa(redPlayer.ID)+"> vs. <@"+strconv.Itoa(bluePlayer.ID)+">")
+			dg.ChannelMessageSend(
+				os.Getenv("DISCORD_CHANNEL_ID"),
+				"Quals "+strconv.Itoa(matchID)+" will be <@"+strconv.Itoa(redPlayer.ID)+"> vs. <@"+strconv.Itoa(bluePlayer.ID)+">")
+		case "Playoffs":
+			services.BroadcastActiveMatch(
+				matchLevel,
+				matchID,
+				"",
+				"",
+				db,
+			)
+		}
+
 		c.Redirect(http.StatusSeeOther, "/admin")
 		// Return success response
 		c.JSON(http.StatusOK, gin.H{
@@ -100,6 +112,29 @@ func SetActiveMatchHandler(db *gorm.DB, dg *discordgo.Session) gin.HandlerFunc {
 			"RedAlliance":  match.RedPlayerID,
 			"BlueAlliance": match.BluePlayerID,
 		})
+	}
+}
+
+func ShowEndgameScreenHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		matchIDStr := c.Param("id")
+		matchID, err := strconv.Atoi(matchIDStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid match ID"})
+			return
+		}
+
+		var match models.QualsMatch
+		if err := db.First(&match, matchID).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Match not found"})
+			return
+		}
+
+		var redUser, blueUser models.User
+		services.EndScreenBroadcast(
+			[]string{redUser.PreferedUsername},
+			[]string{blueUser.PreferedUsername},
+		)
 	}
 }
 

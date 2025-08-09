@@ -44,8 +44,8 @@ func EditMatchesHandler(db *gorm.DB) gin.HandlerFunc {
 		if c.Request.Method == "POST" {
 			redAlliance := c.PostForm("redAlliance")
 			blueAlliance := c.PostForm("blueAlliance")
-			redTeleopScore := c.PostForm("redTeleopScore")
-			blueTeleopScore := c.PostForm("blueTeleopScore")
+			redTotalScore := c.PostForm("redTotalScore")
+			blueTotalScore := c.PostForm("blueTotalScore")
 			redAutoScore := c.PostForm("redAutoScore")
 			blueAutoScore := c.PostForm("blueAutoScore")
 			redEndgameScore := c.PostForm("redEndgameScore")
@@ -65,14 +65,14 @@ func EditMatchesHandler(db *gorm.DB) gin.HandlerFunc {
 				return
 			}
 
-			redTeleopScoreInt, err := strconv.Atoi(redTeleopScore)
+			redTotalScoreInt, err := strconv.Atoi(redTotalScore)
 			if err != nil {
-				c.JSON(400, gin.H{"error": "Invalid red teleop score"})
+				c.JSON(400, gin.H{"error": "Invalid red total score"})
 				return
 			}
-			blueTeleopScoreInt, err := strconv.Atoi(blueTeleopScore)
+			blueTotalScoreInt, err := strconv.Atoi(blueTotalScore)
 			if err != nil {
-				c.JSON(400, gin.H{"error": "Invalid blue teleop score"})
+				c.JSON(400, gin.H{"error": "Invalid blue total score"})
 				return
 			}
 			redAutoScoreInt, err := strconv.Atoi(redAutoScore)
@@ -96,8 +96,9 @@ func EditMatchesHandler(db *gorm.DB) gin.HandlerFunc {
 				return
 			}
 
-			redScoreInt := redTeleopScoreInt + redAutoScoreInt + redEndgameScoreInt
-			blueScoreInt := blueTeleopScoreInt + blueAutoScoreInt + blueEndgameScoreInt
+			// Calculate teleop scores
+			redTeleopScoreInt := redTotalScoreInt - redAutoScoreInt - redEndgameScoreInt
+			blueTeleopScoreInt := blueTotalScoreInt - blueAutoScoreInt - blueEndgameScoreInt
 
 			redBonusRPInt, err := strconv.Atoi(redBonusRP)
 			if err != nil {
@@ -113,10 +114,10 @@ func EditMatchesHandler(db *gorm.DB) gin.HandlerFunc {
 
 			redWinRP, blueWinRP := 0, 0
 
-			if redScoreInt > blueScoreInt {
+			if redTotalScoreInt > blueTotalScoreInt {
 				redWinRP = 3
 				blueWinRP = 0
-			} else if redScoreInt < blueScoreInt {
+			} else if redTotalScoreInt < blueTotalScoreInt {
 				redWinRP = 0
 				blueWinRP = 3
 			} else {
@@ -133,8 +134,8 @@ func EditMatchesHandler(db *gorm.DB) gin.HandlerFunc {
 				BlueAutoScore:    blueAutoScoreInt,
 				RedEndgameScore:  redEndgameScoreInt,
 				BlueEndgameScore: blueEndgameScoreInt,
-				RedScore:         redScoreInt,
-				BlueScore:        blueScoreInt,
+				RedScore:         redTotalScoreInt,
+				BlueScore:        blueTotalScoreInt,
 				RedWinRP:         redWinRP,
 				BlueWinRP:        blueWinRP,
 				RedBonusRP:       redBonusRPInt,
@@ -156,12 +157,94 @@ func EditMatchesHandler(db *gorm.DB) gin.HandlerFunc {
 			}
 
 			services.BroadcastLeaderboardUpdate(db)
-			services.EndScreenBroadcast(
-				[]string{redUser.PreferedUsername},
-				[]string{blueUser.PreferedUsername},
-			)
 
 			c.Redirect(302, "/admin/")
+		}
+	}
+}
+
+// MatchWithNames represents a match with player names instead of IDs
+type MatchWithNames struct {
+	ID               int
+	RedPlayerName    string
+	BluePlayerName   string
+	RedTeleopScore   int
+	BlueTeleopScore  int
+	RedAutoScore     int
+	BlueAutoScore    int
+	RedEndgameScore  int
+	BlueEndgameScore int
+	RedScore         int
+	BlueScore        int
+	RedWinRP         int
+	BlueWinRP        int
+	RedBonusRP       int
+	BlueBonusRP      int
+}
+
+func MatchResultsHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var matches []models.QualsMatch
+		if err := db.Find(&matches).Error; err != nil {
+			c.JSON(500, gin.H{"error": "Failed to fetch matches"})
+			return
+		}
+
+		// Convert matches to include player names
+		var matchesWithNames []MatchWithNames
+		for _, match := range matches {
+			var redUser, blueUser models.User
+
+			// Get red player name
+			if err := db.Where("mm_id = ?", match.RedPlayerID).First(&redUser).Error; err != nil {
+				c.JSON(500, gin.H{"error": "Failed to fetch red player"})
+				return
+			}
+
+			// Get blue player name
+			if err := db.Where("mm_id = ?", match.BluePlayerID).First(&blueUser).Error; err != nil {
+				c.JSON(500, gin.H{"error": "Failed to fetch blue player"})
+				return
+			}
+
+			// Use preferred username if available, otherwise use username
+			redPlayerName := redUser.Username
+			if redUser.PreferedUsername != "" {
+				redPlayerName = redUser.PreferedUsername
+			}
+
+			bluePlayerName := blueUser.Username
+			if blueUser.PreferedUsername != "" {
+				bluePlayerName = blueUser.PreferedUsername
+			}
+
+			matchWithNames := MatchWithNames{
+				ID:               match.ID,
+				RedPlayerName:    redPlayerName,
+				BluePlayerName:   bluePlayerName,
+				RedTeleopScore:   match.RedTeleopScore,
+				BlueTeleopScore:  match.BlueTeleopScore,
+				RedAutoScore:     match.RedAutoScore,
+				BlueAutoScore:    match.BlueAutoScore,
+				RedEndgameScore:  match.RedEndgameScore,
+				BlueEndgameScore: match.BlueEndgameScore,
+				RedScore:         match.RedScore,
+				BlueScore:        match.BlueScore,
+				RedWinRP:         match.RedWinRP,
+				BlueWinRP:        match.BlueWinRP,
+				RedBonusRP:       match.RedBonusRP,
+				BlueBonusRP:      match.BlueBonusRP,
+			}
+			matchesWithNames = append(matchesWithNames, matchWithNames)
+		}
+
+		if GetSchedulePublic() {
+			c.HTML(200, "matchresults.tmpl", gin.H{
+				"title":   "Match Results",
+				"matches": matchesWithNames,
+			})
+		} else {
+			c.JSON(401, gin.H{"error": "Match results are not public"})
 		}
 	}
 }

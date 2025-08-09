@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .title }}</title>
+    <link rel="stylesheet" href="/static/static/dark-theme.css">
+    <link rel="icon" type="image/x-icon" href="/static/static/favicon.png">
+</head>
+
+<body>
+    <style>
+        .back-nav {
+            margin-bottom: 30px;
+        }
+
+        .back-nav a {
+            background: linear-gradient(135deg, #4fd1c7 0%, #319795 100%);
+            color: #1a202c;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 10px 20px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        .back-nav a:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 209, 199, 0.4);
+        }
+    </style>
+    <div class="back-nav">
+        <a href="/">← Back to Home</a>
+    </div>
+    <table>
+        <th>Match</th>
+        <th>Red Player</th>
+        <th>Blue Player</th>
+        <th>Red Auto</th>
+        <th>Blue Auto</th>
+        <th>Red Teleop</th>
+        <th>Blue Teleop</th>
+        <th>Red Endgame</th>
+        <th>Blue Endgame</th>
+        <th>Red Total</th>
+        <th>Blue Total</th>
+        <th>Red Bonus RP</th>
+        <th>Blue Bonus RP</th>
+        {{ range .matches }}
+        <tr>
+            <td>{{ .ID }}</td>
+            <td>{{ .RedPlayerName }}</td>
+            <td>{{ .BluePlayerName }}</td>
+            <td>{{ .RedAutoScore }}</td>
+            <td>{{ .BlueAutoScore }}</td>
+            <td>{{ .RedTeleopScore }}</td>
+            <td>{{ .BlueTeleopScore }}</td>
+            <td>{{ .RedEndgameScore }}</td>
+            <td>{{ .BlueEndgameScore }}</td>
+            <td>{{ .RedScore }}</td>
+            <td>{{ .BlueScore }}</td>
+            <td>{{ .RedBonusRP }}</td>
+            <td>{{ .BlueBonusRP }}</td>
+        </tr>
+        {{ end }}
+    </table>
+</body>
+
+</html>
