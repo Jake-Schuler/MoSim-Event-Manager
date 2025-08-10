@@ -1,10 +1,10 @@
-# ORC MatchMaker
+# MoSim Event Manager
 
-ORC MatchMaker is a application built for the ORC discord server for generating a match schedule for the MoSim competitions that are held.
+The MoSim Event Manager is a piece of software designed to manage MoSim events.
 
 ## Setup
 
-1. `git clone https://github.com/Jake-Schuler/ORC-MatchMaker\`
+1. `git clone https://github.com/Jake-Schuler/MoSim-Event-Manager\`
 
 2. `go get`
 
