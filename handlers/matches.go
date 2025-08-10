@@ -3,8 +3,8 @@ package handlers
 import (
 	"strconv"
 
-	"github.com/Jake-Schuler/ORC-MatchMaker/models"
-	"github.com/Jake-Schuler/ORC-MatchMaker/services"
+	"github.com/Jake-Schuler/MoSim-Event-Manager/models"
+	"github.com/Jake-Schuler/MoSim-Event-Manager/services"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )

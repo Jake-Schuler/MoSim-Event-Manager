@@ -11,8 +11,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
-	"github.com/Jake-Schuler/ORC-MatchMaker/models"
-	"github.com/Jake-Schuler/ORC-MatchMaker/services"
+	"github.com/Jake-Schuler/MoSim-Event-Manager/models"
+	"github.com/Jake-Schuler/MoSim-Event-Manager/services"
 )
 
 func AdminDashboardHandler(db *gorm.DB) gin.HandlerFunc {
@@ -131,10 +131,20 @@ func ShowEndgameScreenHandler(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		var redUser, blueUser models.User
+		if err := db.Where("mm_id = ?", match.RedPlayerID).First(&redUser).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Red player not found"})
+			return
+		}
+		if err := db.Where("mm_id = ?", match.BluePlayerID).First(&blueUser).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Blue player not found"})
+			return
+		}
+
 		services.EndScreenBroadcast(
 			[]string{redUser.PreferedUsername},
 			[]string{blueUser.PreferedUsername},
 		)
+		c.Redirect(http.StatusSeeOther, "/admin")
 	}
 }
 

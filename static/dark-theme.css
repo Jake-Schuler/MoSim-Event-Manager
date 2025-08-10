@@ -332,3 +332,24 @@ td a:hover {
     background-color: #4fd1c7;
     color: #1a202c;
 }
+
+/* Footer Styling */
+.footer {
+    text-align: center;
+    margin-top: 40px;
+    padding: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    color: #718096;
+    font-size: 14px;
+}
+
+.footer a {
+    color: #4fd1c7;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.footer a:hover {
+    color: #81e6d9;
+    text-decoration: underline;
+}

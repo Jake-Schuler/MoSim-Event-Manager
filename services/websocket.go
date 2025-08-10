@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/Jake-Schuler/ORC-MatchMaker/models"
+	"github.com/Jake-Schuler/MoSim-Event-Manager/models"
 	"github.com/gorilla/websocket"
 	"gorm.io/gorm"
 )

@@ -18,7 +18,7 @@ func InitDiscordBot() *discordgo.Session {
 		panic("Error opening Discord session: " + err.Error())
 	}
 
-	dg.UpdateWatchStatus(0, "The Online Robot Competition")
+	dg.UpdateWatchStatus(0, "Robotics")
 
 	return dg
 }

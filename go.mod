@@ -1,4 +1,4 @@
-module github.com/Jake-Schuler/ORC-MatchMaker
+module github.com/Jake-Schuler/MoSim-Event-Manager
 
 go 1.23.4
 

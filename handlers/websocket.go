@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/Jake-Schuler/ORC-MatchMaker/services"
+	"github.com/Jake-Schuler/MoSim-Event-Manager/services"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )

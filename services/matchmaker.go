@@ -8,8 +8,8 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/Jake-Schuler/ORC-MatchMaker/config"
-	"github.com/Jake-Schuler/ORC-MatchMaker/models"
+	"github.com/Jake-Schuler/MoSim-Event-Manager/config"
+	"github.com/Jake-Schuler/MoSim-Event-Manager/models"
 )
 
 var CurrentMMID = 1

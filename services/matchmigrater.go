@@ -3,8 +3,8 @@ package services
 import (
 	"fmt"
 
-	"github.com/Jake-Schuler/ORC-MatchMaker/config"
-	"github.com/Jake-Schuler/ORC-MatchMaker/models"
+	"github.com/Jake-Schuler/MoSim-Event-Manager/config"
+	"github.com/Jake-Schuler/MoSim-Event-Manager/models"
 )
 
 func MigrateMatchSchedule() error {

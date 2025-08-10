@@ -8,9 +8,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 
-	"github.com/Jake-Schuler/ORC-MatchMaker/config"
-	"github.com/Jake-Schuler/ORC-MatchMaker/handlers"
-	"github.com/Jake-Schuler/ORC-MatchMaker/services"
+	"github.com/Jake-Schuler/MoSim-Event-Manager/config"
+	"github.com/Jake-Schuler/MoSim-Event-Manager/handlers"
+	"github.com/Jake-Schuler/MoSim-Event-Manager/services"
 )
 
 //go:embed static/*

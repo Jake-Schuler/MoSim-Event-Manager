@@ -455,6 +455,31 @@
             display: inline-block;
         }
 
+        /* Overlay Branding Styles */
+        .overlay-branding {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: rgba(255, 255, 255, 0.8);
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-family: 'Segoe UI', sans-serif;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .overlay-branding a {
+            color: #4fd1c7;
+            text-decoration: none;
+        }
+
+        .overlay-branding a:hover {
+            color: #81e6d9;
+        }
+
     </style>
     <div class="leaderboard">
         <h1>Leaderboard</h1>
@@ -474,6 +499,9 @@
             </tbody>
         </table>
 
+        <div class="overlay-branding">
+            Powered by <a href="https://github.com/Jake-Schuler/MoSim-Event-Manager" target="_blank">MoSim Event Manager</a>
+        </div>
     </div>
     <div class="status-bar">
         <div class="logo-container">
@@ -500,6 +528,10 @@
                 <p class="endscreen-username">User 1</p>
             </div>
             <p class="blueAlliance-rank">1</p>
+        </div>
+        
+        <div class="overlay-branding">
+            Powered by <a href="https://github.com/Jake-Schuler/MoSim-Event-Manager" target="_blank">MoSim Event Manager</a>
         </div>
     </div>
     
@@ -572,6 +604,10 @@
                     </div>
                 </div>
             </div>
+        </div>
+        
+        <div class="overlay-branding">
+            Powered by <a href="https://github.com/Jake-Schuler/MoSim-Event-Manager" target="_blank">MoSim Event Manager</a>
         </div>
     </div>
     <script>

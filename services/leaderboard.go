@@ -1,7 +1,7 @@
 package services
 
 import (
-	"github.com/Jake-Schuler/ORC-MatchMaker/models"
+	"github.com/Jake-Schuler/MoSim-Event-Manager/models"
 	"gorm.io/gorm"
 )
 
